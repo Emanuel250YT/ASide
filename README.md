@@ -1,6 +1,8 @@
 ﻿# ASide
 
-**ASide** is a TypeScript library for building social networks and identity-driven applications on top of the [Arkiv Network](https://github.com/Arkiv-Network/arka-cdn) blockchain. It provides everything you need out of the box: decentralized user profiles, a full social graph (follows, friends, blocks), a content feed (posts, reactions, comments), QR-based friend requests, and ECDH-secured access tokens — all backed by a public, tamper-proof ledger.
+**ASide** is a complete TypeScript development kit for building any kind of platform on top of [Arkiv](https://arkiv.network/) and [ArkaCDN](https://arkiv.network/) — from social networks and event platforms to messaging apps and custom communities. It integrates both services into a single, cohesive API so you can ship fast without gluing together multiple SDKs.
+
+Out of the box you get: decentralized user profiles, a full social graph (follows, friends, blocks), a content feed (posts, reactions, comments), a full event platform (creation, ticketing, RSVP, check-in, calendars), QR-based friend requests, and ECDH-secured access tokens — all backed by a public, tamper-proof ledger.
 
 > **ArkaCDN is bundled.** You only need one install:
 >
@@ -16,9 +18,11 @@ Works in **Node.js ≥ 16** and all modern **browsers** (uses the WebCrypto API,
 
 ## Why ASide?
 
-- **One library, many apps.** Any application built on Aside shares the same identity layer. A user's profile, followers, and posts are stored on the public blockchain — any Aside-powered app can read and build on top of them without extra integrations.
+- **Complete platform kit.** Social graph, event management, messaging-ready identity, content feeds, ticketing, and access control — everything you need to build a full-featured platform in one library.
+- **Arkiv + ArkaCDN, unified.** ASide is the official integration layer for both Arkiv (the blockchain) and ArkaCDN (the content storage network). You install one package and get both.
+- **One library, many apps.** Any application built on ASide shares the same identity layer. A user's profile, followers, posts, and events are stored on the public blockchain — any ASide-powered app can read and build on top of them without extra integrations.
 - **Truly decentralized.** Data lives on ArkaCDN (Arkiv Network). No central server, no vendor lock-in.
-- **Cross-app social graph.** A user who follows someone on App A automatically shows that follow in App B — it's the same blockchain.
+- **Cross-app portability.** A user who follows someone on App A automatically shows that follow in App B. Events created on one platform are discoverable by any other ASide-powered app — it's the same blockchain.
 - **Secure by default.** ECDH P-256 tokens with per-token forward secrecy. No shared secrets are ever transmitted.
 - **Fully typed.** First-class TypeScript with an ergonomic Discord.js-style class API.
 
@@ -164,7 +168,7 @@ const post = await feed.createPost({
 
 ## Running the examples
 
-The [`examples/index.js`](examples/index.js) file is a comprehensive, runnable demo that covers all 28 use-case sections — from profile creation and the social graph to events, tickets, crypto utilities, and more.
+The [`examples/index.js`](examples/index.js) file is a comprehensive, runnable demo that covers all 31 use-case sections — from profile creation and the social graph to events, tickets, crypto utilities, and more.
 
 ### Prerequisites
 
@@ -185,24 +189,39 @@ The [`examples/index.js`](examples/index.js) file is a comprehensive, runnable d
 
 ### What the examples cover
 
-| Section                  | What it demonstrates                                                                                                                                                                                                 |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Chain & CDN setup     | `chainFromName`, `PublicClient`, `WalletClient`, `ArkaCDN.create`                                                                                                                                                    |
-| 2. Base profile          | `getOrCreate`, `get`, `update` — full profile lifecycle                                                                                                                                                              |
-| 3. Cross-chain sync      | `client.sync([cdn2])` — replicate to another chain                                                                                                                                                                   |
-| 4. Extension data        | `client.extend(ns).getOrCreate` / `.update` / `.get`                                                                                                                                                                 |
-| 5. Photo upload/download | `uploadPhoto`, `downloadPhoto` — chunked on-chain media                                                                                                                                                              |
-| 6. Social graph          | `follow`, `unfollow`, `block`, `getFollowing`, counts                                                                                                                                                                |
-| 7. Friend requests       | `sendFriendRequest`, `cancelFriendRequest`                                                                                                                                                                           |
-| 8. Feed                  | `createPost`, reactions, comments, timeline                                                                                                                                                                          |
-| 9. QR codes              | `encodeProfileLink`, `encodeFriendRequest`, expiry helpers                                                                                                                                                           |
-| 10. Access tokens        | `generateAppKeyPair`, `createAccessToken`, `validate`, `validateSession`                                                                                                                                             |
-| 11. Snowflake IDs        | `SnowflakeGenerator` — define permissions, generate, decode                                                                                                                                                          |
-| 12. ProfileWatcher       | Multi-chain polling with `onFound`/`onLost`/`onPoll` callbacks                                                                                                                                                       |
-| 13. Crypto utilities     | AES-GCM, HMAC-SHA256, phrase commitments, ECDH key agreement                                                                                                                                                         |
-| 14. Custom subclass      | `GameClient extends BaseClient` — Discord.js-style extensibility                                                                                                                                                     |
-| 15. Key generation       | `generatePrivateKey`, `privateKeyToAccount` onboarding helpers                                                                                                                                                       |
-| 16–28. Events            | Full Luma-style event platform: create/publish, agenda, organizers, RSVP, guest list, questions, tickets, discounts, waitlist, invitations, check-in, announcements, analytics, calendars, notifications, moderation |
+| Section                                                                        | What it demonstrates                                                                  |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| [1. Chain & CDN setup](#quick-start)                                           | `chainFromName`, `PublicClient`, `WalletClient`, `ArkaCDN.create`                     |
+| [2. Base profile](#user-profiles)                                              | `getOrCreate`, `get`, `update` — full profile lifecycle                               |
+| [3. Cross-chain sync](#multi-chain-replication)                                | `client.sync([cdn2])` — replicate to another chain                                    |
+| [4. Extension data](#per-app-extension-data)                                   | `client.extend(ns).getOrCreate` / `.update` / `.get`                                  |
+| [5. Photo upload/download](#user-profiles)                                     | `uploadPhoto`, `downloadPhoto` — chunked on-chain media                               |
+| [6. Social graph](#social-graph--follow-friend-block)                          | `follow`, `unfollow`, `block`, `getFollowing`, counts                                 |
+| [7. Friend requests](#friend-requests)                                         | `sendFriendRequest`, `cancelFriendRequest`                                            |
+| [8. Feed](#content-feed--posts-reactions-comments)                             | `createPost`, reactions, comments, timeline                                           |
+| [9. QR codes](#qr-codes-and-deep-links)                                        | `encodeProfileLink`, `encodeFriendRequest`, expiry helpers                            |
+| [10. Access tokens](#access-tokens-and-session-security)                       | `generateAppKeyPair`, `createAccessToken`, `validate`, `validateSession`              |
+| [11. Snowflake IDs](#snowflakegenerator)                                       | `SnowflakeGenerator` — define permissions, generate, decode                           |
+| [12. ProfileWatcher](#profilewatcher)                                          | Multi-chain polling with `onFound`/`onLost`/`onPoll` callbacks                        |
+| [13. Crypto utilities](#crypto-utilities)                                      | AES-GCM, HMAC-SHA256, phrase commitments, ECDH key agreement                          |
+| [14. Custom subclass](#subclassing-discordjs-style)                            | `GameClient extends BaseClient` — Discord.js-style extensibility                      |
+| [15. Key generation](#quick-start)                                             | `generatePrivateKey`, `privateKeyToAccount` onboarding helpers                        |
+| [16. Create & publish events](#creating--publishing-events)                    | `createEvent`, `publishEvent`, `updateEvent`, `deleteEvent`, `getEvent`, `listEvents` |
+| [17. Agenda management](#agenda-management)                                    | `addAgendaItem`, `updateAgendaItem`, `removeAgendaItem`, `getAgenda`                  |
+| [18. Organizers & role-based permissions](#organizers--role-based-permissions) | `addOrganizer`, `updateOrganizerRole`, `removeOrganizer`, `listOrganizers`            |
+| [19. Registration / RSVP](#registration--rsvp)                                 | `register`, `cancelRegistration`, `getRegistration`, `listRegistrations`              |
+| [20. Guest list](#guest-list)                                                  | `getGuestList`, `exportGuestList`, guest status management                            |
+| [21. Custom registration questions](#custom-registration-questions)            | `addQuestion`, `updateQuestion`, `removeQuestion`, custom form fields                 |
+| [22. Ticket types & tickets](#ticket-types--tickets)                           | `createTicketType`, `issueTicket`, `transferTicket`, `listTickets`                    |
+| [23. Discount codes](#discount-codes)                                          | `createDiscountCode`, `validateDiscountCode`, `listDiscountCodes`                     |
+| [24. Waitlist](#waitlist)                                                      | `joinWaitlist`, `promoteFromWaitlist`, `getWaitlist`                                  |
+| [25. Invitations](#invitations)                                                | `sendInvitation`, `acceptInvitation`, `declineInvitation`, `listInvitations`          |
+| [26. Check-in](#check-in)                                                      | `checkIn`, `undoCheckIn`, `getCheckInStatus`, bulk check-in                           |
+| [27. Announcements & reminders](#announcements--reminders)                     | `sendAnnouncement`, `scheduleReminder`, `listAnnouncements`                           |
+| [28. Analytics](#analytics)                                                    | `getEventAnalytics`, views, registration trends, check-in rates                       |
+| [29. Calendars & calendar following](#calendars--calendar-following)           | `createCalendar`, `followCalendar`, `listCalendarEvents`                              |
+| [30. Notifications](#notifications)                                            | `listNotifications`, `markNotificationRead`, event-triggered alerts                   |
+| [31. Moderation](#moderation)                                                  | `banAttendee`, `unbanAttendee`, `listBans`, content moderation                        |
 
 ---
 
@@ -438,7 +457,7 @@ const comments = await feed.getComments(post.entityKey, { limit: 50 });
 
 ## Events
 
-`client.events()` returns an `EventClient` — a full Luma-style event platform backed by the same on-chain identity. Events are linked to your profile, publicly discoverable, and composable with the rest of the ASide social graph.
+`client.events()` returns an `EventClient` — a full-featured event platform backed by the same on-chain identity. Build anything from small private gatherings to large-scale public conferences: events are linked to your profile, publicly discoverable, and composable with the rest of the ASide ecosystem (social graph, feeds, messaging-ready identity).
 
 ### Creating & publishing events
 
@@ -1022,7 +1041,7 @@ const valid = await verifyPhraseCommitment("user-secret-phrase", hash, salt);
 
 ## Cross-app integration
 
-The power of Aside is that **all apps share the same identity and social graph**. Because everything is stored on ArkaCDN (a public blockchain), any Aside-powered app can interoperate with any other.
+The power of ASide is that **all apps share the same identity layer** — social graph, events, content, and access tokens. Because everything is stored on ArkaCDN (a public blockchain), any ASide-powered app can interoperate with any other, whether it's a social network, an event platform, a community app, or something entirely custom.
 
 ### Example: App B reads App A's followers
 
