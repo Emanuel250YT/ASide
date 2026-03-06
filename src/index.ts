@@ -1,59 +1,126 @@
 /**
- * ASide — Temporary user profiles linked to blockchain wallets.
+ * ASide — Decentralized user profiles with cross-chain replication,
+ * social graph, feed, QR utilities, and ECDH-based access token authorization.
  *
- * Cross-chain identity layer built on ArkaCDN / Arkiv Network.
+ * Built on ArkaCDN / Arkiv Network.  Works in both Node.js ≥ 16 and modern browsers.
  *
- * ## Core concepts
+ * ## Core classes
  *
- * - **BaseClient** — the same profile (uuid + wallet + photo) everywhere.
- *   Create once, replicate automatically across chains.
- * - **Extension** — app-specific data stored independently of the base profile.
- *   Each app manages its own namespace without touching the base client.
+ * - **BaseClient** — Discord.js-style extensible class.  Manages an identity
+ *   (uuid + wallet + photo) across chains, with `sync()`, `watch()`, `social()`,
+ *   `feed()`, `extend()`, and `createAccessToken()`.
+ * - **ExtensionClient** — App-specific data per namespace.
+ * - **SocialClient** — Follow graph, friend requests, and user blocking.
+ * - **FeedClient** — Posts, likes/reactions, and comments.
+ * - **AccessTokenManager** — ECDH P-256 sealed tokens + session requests.
+ * - **SnowflakeGenerator** — 128-bit IDs with 52-bit permission bitmasks.
+ * - **ProfileWatcher** — Polls multiple chains for profile presence.
  *
- * ## Quick start
+ * ## Auth scheme
  *
- * ```ts
- * import { createArkaCDN, PublicClient, WalletClient, generateUUID } from 'arka-cdn'
- * import { privateKeyToAccount } from 'viem/accounts'
- * import { createBaseClient } from 'aside'
- *
- * const cdn = createArkaCDN({
- *   publicClient: new PublicClient(),
- *   wallets: new WalletClient({ account: privateKeyToAccount(process.env.PK!) }),
- * })
- *
- * // 1. Create the base client — identical identity across all chains & apps
- * const client = createBaseClient({
- *   uuid: generateUUID(),   // generate once, save this value
- *   wallet: '0x...',
- *   photo: 'https://example.com/avatar.png',
- *   displayName: 'Alice',
- *   cdn,
- * })
- *
- * // 2. Get or create the on-chain profile
- * const { profile } = await client.getOrCreate()
- *
- * // 3. Sync from another chain (auto-replicates if found elsewhere)
- * const { profile } = await client.sync([polygonCdn, arbitrumCdn])
- *
- * // 4. App-specific extension (independent, typed, per-namespace)
- * const gameExt = client.extend<{ score: number; level: number }>('my-game')
- * const { extension } = await gameExt.getOrCreate({ score: 0, level: 1 })
- * await gameExt.update({ score: extension.data.score + 100 })
- * ```
+ * `generateAppKeyPair()` → publish the public key → client calls
+ * `manager.create({ appPublicKey })` → server calls `manager.validate({ appPrivateKey })`.
+ * No shared secret is ever transmitted.
  *
  * @module
  */
 
-export { createBaseClient } from './client.js'
+// ─── Core classes ─────────────────────────────────────────────────────────────
+export { BaseClient }          from './base-client.js'
+export { ExtensionClient }     from './extension.js'
+export { AccessTokenManager }  from './access-token.js'
+export { SnowflakeGenerator }  from './snowflake.js'
+export { ProfileWatcher }      from './watcher.js'
+export { SocialClient }        from './social.js'
+export { FeedClient }          from './feed.js'
+
+// ─── Crypto utilities ─────────────────────────────────────────────────────────
+export {
+  generateAppKeyPair,
+  generateAesKey,
+  ecdhDeriveKeys,
+  phraseToCommitment,
+  verifyPhraseCommitment,
+  aesEncrypt,
+  aesDecrypt,
+  hmacSign,
+  hmacVerify,
+} from './crypto.js'
+
+// ─── QR utilities ─────────────────────────────────────────────────────────────
+export {
+  encodeProfileLink,
+  decodeProfileLink,
+  encodeFriendRequest,
+  decodeFriendRequest,
+  isFriendRequestQRValid,
+  friendRequestQRExpiresIn,
+  parseAsideUri,
+} from './qr.js'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 export type {
-  BaseClientInstance,
-  BaseClientOptions,
+  // Profile
   BaseProfileData,
   BaseProfileResult,
-  ExtensionClientInstance,
+  BaseClientOptions,
   ExtensionData,
   ExtensionResult,
+  // Snowflake
+  PermissionDefinition,
+  PermissionSnowflake,
+  // Access tokens
+  AccessTokenClaims,
+  SealedAccessToken,
+  CreateAccessTokenOptions,
+  CreateAccessTokenResult,
+  ValidateTokenOptions,
+  ValidateTokenResult,
+  InvalidTokenResult,
+  AppKeyPair,
+  ParityKeyPair,       // kept for backward compat, deprecated
+  // Watcher
+  ChainCDN,
+  WatcherOptions,
+  WatcherChainResult,
+  // Session
+  SessionRequest,
+  // Social
+  SocialFollow,
+  FriendRequest,
+  FriendRequestStatus,
+  SocialPost,
+  PostMedia,
+  PostMediaType,
+  SocialReaction,
+  ReactionType,
+  SocialComment,
+  SocialBlock,
+  SocialStatus,
+  CreatePostOptions,
+  PaginationOptions,
+  // QR
+  ProfileQRData,
+  FriendRequestQRData,
+  QREncodeOptions,
 } from './types.js'
-export { ATTR_NAMESPACE, ATTR_TYPE, ATTR_UUID, ATTR_WALLET, DEFAULT_EXPIRY_SECONDS, EXTENSION_TYPE, PROFILE_TYPE } from './constants.js'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+export {
+  ATTR_NAMESPACE,
+  ATTR_TYPE,
+  ATTR_UUID,
+  ATTR_WALLET,
+  ATTR_TARGET_UUID,
+  ATTR_TARGET_KEY,
+  DEFAULT_EXPIRY_SECONDS,
+  EXTENSION_TYPE,
+  PROFILE_TYPE,
+  SOCIAL_FOLLOW_TYPE,
+  SOCIAL_FRIEND_REQUEST_TYPE,
+  SOCIAL_POST_TYPE,
+  SOCIAL_REACTION_TYPE,
+  SOCIAL_COMMENT_TYPE,
+  SOCIAL_BLOCK_TYPE,
+  SNOWFLAKE_EPOCH,
+} from './constants.js'
