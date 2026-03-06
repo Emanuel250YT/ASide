@@ -3,6 +3,18 @@
 
 ## v1.0.3
 
+[compare changes](https://github.com/Emanuel250YT/ASide/compare/v1.0.3-beta.2...v1.0.3)
+
+### 🏡 Chore
+
+- Add repository field to package.json ([dedd7ea](https://github.com/Emanuel250YT/ASide/commit/dedd7ea))
+
+### ❤️ Contributors
+
+- Emanuel250YT <emanuel250gameryt@gmail.com>
+
+## v1.0.3
+
 [compare changes](https://github.com/Emanuel250YT/ASide/compare/v1.0.3-beta.1...v1.0.3)
 
 ## v1.0.3
