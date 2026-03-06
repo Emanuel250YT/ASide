@@ -28,7 +28,7 @@
     "release": "pnpm typecheck && pnpm test && changelogen --release && bumpp --commit --tag --push"
   },
   "dependencies": {
-    "@arkiv-network/sdk": ">=0.7.0",
+    "@arkiv-network/sdk": ">=0.6.0",
     "arka-cdn": "^0.1.2-beta.5",
     "viem": ">=2.0.0"
   },

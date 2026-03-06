@@ -1,6 +1,6 @@
 ﻿# ASide
 
-**ASide** is a TypeScript library for building social networks and identity-driven applications on top of the [Arkiv Network](https://github.com/Arkiv-Network/arka-cdn) blockchain. It provides everything you need out of the box: decentralized user profiles, a full social graph (follows, friends, blocks), a content feed (posts, reactions, comments), QR-based friend requests, and ECDH-secured access tokens â€” all backed by a public, tamper-proof ledger.
+**ASide** is a TypeScript library for building social networks and identity-driven applications on top of the [Arkiv Network](https://github.com/Arkiv-Network/arka-cdn) blockchain. It provides everything you need out of the box: decentralized user profiles, a full social graph (follows, friends, blocks), a content feed (posts, reactions, comments), QR-based friend requests, and ECDH-secured access tokens — all backed by a public, tamper-proof ledger.
 
 > **ArkaCDN is bundled.** You only need one install:
 >
@@ -10,15 +10,15 @@
 >
 > Everything in `arka-cdn` is re-exported by `aside` itself, so you never need to install `arka-cdn` separately.
 
-Works in **Node.js â‰¥ 16** and all modern **browsers** (uses the WebCrypto API, no native crypto modules).
+Works in **Node.js ≥ 16** and all modern **browsers** (uses the WebCrypto API, no native crypto modules).
 
 ---
 
 ## Why ASide?
 
-- **One library, many apps.** Any application built on Aside shares the same identity layer. A user's profile, followers, and posts are stored on the public blockchain â€” any Aside-powered app can read and build on top of them without extra integrations.
+- **One library, many apps.** Any application built on Aside shares the same identity layer. A user's profile, followers, and posts are stored on the public blockchain — any Aside-powered app can read and build on top of them without extra integrations.
 - **Truly decentralized.** Data lives on ArkaCDN (Arkiv Network). No central server, no vendor lock-in.
-- **Cross-app social graph.** A user who follows someone on App A automatically shows that follow in App B â€” it's the same blockchain.
+- **Cross-app social graph.** A user who follows someone on App A automatically shows that follow in App B — it's the same blockchain.
 - **Secure by default.** ECDH P-256 tokens with per-token forward secrecy. No shared secrets are ever transmitted.
 - **Fully typed.** First-class TypeScript with an ergonomic Discord.js-style class API.
 
@@ -27,10 +27,11 @@ Works in **Node.js â‰¥ 16** and all modern **browsers** (uses the WebCrypto 
 ## Table of contents
 
 1. [Quick start](#quick-start)
-2. [User profiles](#user-profiles)
-3. [Social graph — follow, friend, block](#social-graph--follow-friend-block)
-4. [Content feed — posts, reactions, comments](#content-feed--posts-reactions-comments)
-5. [Events](#events)
+2. [Running the examples](#running-the-examples)
+3. [User profiles](#user-profiles)
+4. [Social graph — follow, friend, block](#social-graph--follow-friend-block)
+5. [Content feed — posts, reactions, comments](#content-feed--posts-reactions-comments)
+6. [Events](#events)
    - [Creating & publishing events](#creating--publishing-events)
    - [Agenda management](#agenda-management)
    - [Organizers & role-based permissions](#organizers--role-based-permissions)
@@ -47,51 +48,114 @@ Works in **Node.js â‰¥ 16** and all modern **browsers** (uses the WebCrypto 
    - [Calendars & calendar following](#calendars--calendar-following)
    - [Notifications](#notifications)
    - [Moderation](#moderation)
-6. [QR codes and deep links](#qr-codes-and-deep-links)
-7. [Access tokens and session security](#access-tokens-and-session-security)
-8. [Cross-app integration](#cross-app-integration)
-9. [Per-app extension data](#per-app-extension-data)
-10. [Multi-chain replication](#multi-chain-replication)
-11. [ProfileWatcher](#profilewatcher)
-12. [SnowflakeGenerator](#snowflakegenerator)
-13. [Crypto utilities](#crypto-utilities)
-14. [API reference](#api-reference)
+7. [QR codes and deep links](#qr-codes-and-deep-links)
+8. [Access tokens and session security](#access-tokens-and-session-security)
+9. [Cross-app integration](#cross-app-integration)
+10. [Per-app extension data](#per-app-extension-data)
+11. [Multi-chain replication](#multi-chain-replication)
+12. [ProfileWatcher](#profilewatcher)
+13. [SnowflakeGenerator](#snowflakegenerator)
+14. [Crypto utilities](#crypto-utilities)
+15. [API reference](#api-reference)
 
 ---
 
 ## Quick start
 
 ```ts
-import { ArkaCDN, BaseClient } from "aside";
+import {
+  ArkaCDN,
+  PublicClient,
+  WalletClient,
+  http,
+  chainFromName,
+  privateKeyToAccount,
+  BaseClient,
+} from "aside";
 
-// 1. Connect to the blockchain
-const cdn = new ArkaCDN({
-  /* your Arkiv Network chain config */
+// 1. Pick a chain and create viem transport clients
+const kaolin = chainFromName("kaolin");
+const publicClient = PublicClient({ chain: kaolin, transport: http() });
+const walletClient = WalletClient({
+  account: privateKeyToAccount("0xYOUR_PRIVATE_KEY"),
+  chain: kaolin,
+  transport: http(),
 });
 
-// 2. Create a client for a user
+// 2. Connect to ArkaCDN
+const cdn = ArkaCDN.create({ publicClient, wallets: walletClient });
+
+// 3. Create an identity client
 const client = new BaseClient({
-  uuid: "user-123",
-  wallet: "0xABCD...",
+  uuid: crypto.randomUUID(), // your stable user ID
+  wallet: privateKeyToAccount("0xYOUR_PRIVATE_KEY").address,
   photo: "https://example.com/avatar.png",
   cdn,
 });
 
-// 3. Fetch or create the profile on-chain
-const profile = await client.getOrCreate();
-console.log(profile.displayName); // "user-123" (or whatever was set)
+// 4. Fetch or create the profile on-chain
+// autoRetryOnUuidConflict mints a fresh uuid if the proposed one is taken
+const profile = await client.getOrCreate({ autoRetryOnUuidConflict: true });
+console.log(profile.profile.displayName);
 
-// 4. Update the profile
-await client.update({ displayName: "Alice" });
+// 5. Update the profile
+await client.update({ displayName: "Alice", bio: "Building on Arkiv" });
 
-// 5. Use the social graph
+// 6. Use the social graph
 const social = client.social();
 await social.follow("user-456");
 
-// 6. Write to the feed
+// 7. Write to the feed
 const feed = client.feed();
-const { post } = await feed.createPost({ content: "Hello, Arkiv!" });
+const post = await feed.createPost({
+  content: "Hello, Arkiv!",
+  tags: ["web3"],
+});
 ```
+
+---
+
+## Running the examples
+
+The [`examples/index.js`](examples/index.js) file is a comprehensive, runnable demo that covers all 28 use-case sections — from profile creation and the social graph to events, tickets, crypto utilities, and more.
+
+### Prerequisites
+
+1. **Build the library** from the repo root:
+   ```bash
+   pnpm install
+   pnpm build
+   ```
+2. **Create `examples/config.json`** with your test private key:
+   ```json
+   { "privateKey": "0xYOUR_PRIVATE_KEY" }
+   ```
+3. **Run the examples:**
+   ```bash
+   cd examples
+   node index.js
+   ```
+
+### What the examples cover
+
+| Section                  | What it demonstrates                                                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Chain & CDN setup     | `chainFromName`, `PublicClient`, `WalletClient`, `ArkaCDN.create`                                                                                                                                                    |
+| 2. Base profile          | `getOrCreate`, `get`, `update` — full profile lifecycle                                                                                                                                                              |
+| 3. Cross-chain sync      | `client.sync([cdn2])` — replicate to another chain                                                                                                                                                                   |
+| 4. Extension data        | `client.extend(ns).getOrCreate` / `.update` / `.get`                                                                                                                                                                 |
+| 5. Photo upload/download | `uploadPhoto`, `downloadPhoto` — chunked on-chain media                                                                                                                                                              |
+| 6. Social graph          | `follow`, `unfollow`, `block`, `getFollowing`, counts                                                                                                                                                                |
+| 7. Friend requests       | `sendFriendRequest`, `cancelFriendRequest`                                                                                                                                                                           |
+| 8. Feed                  | `createPost`, reactions, comments, timeline                                                                                                                                                                          |
+| 9. QR codes              | `encodeProfileLink`, `encodeFriendRequest`, expiry helpers                                                                                                                                                           |
+| 10. Access tokens        | `generateAppKeyPair`, `createAccessToken`, `validate`, `validateSession`                                                                                                                                             |
+| 11. Snowflake IDs        | `SnowflakeGenerator` — define permissions, generate, decode                                                                                                                                                          |
+| 12. ProfileWatcher       | Multi-chain polling with `onFound`/`onLost`/`onPoll` callbacks                                                                                                                                                       |
+| 13. Crypto utilities     | AES-GCM, HMAC-SHA256, phrase commitments, ECDH key agreement                                                                                                                                                         |
+| 14. Custom subclass      | `GameClient extends BaseClient` — Discord.js-style extensibility                                                                                                                                                     |
+| 15. Key generation       | `generatePrivateKey`, `privateKeyToAccount` onboarding helpers                                                                                                                                                       |
+| 16–28. Events            | Full Luma-style event platform: create/publish, agenda, organizers, RSVP, guest list, questions, tickets, discounts, waitlist, invitations, check-in, announcements, analytics, calendars, notifications, moderation |
 
 ---
 
@@ -100,10 +164,19 @@ const { post } = await feed.createPost({ content: "Hello, Arkiv!" });
 A **profile** is the on-chain identity record tied to a `uuid` (your app's user ID) and a blockchain `wallet` address.
 
 ```ts
-import { ArkaCDN, BaseClient } from "aside";
+import {
+  ArkaCDN,
+  PublicClient,
+  WalletClient,
+  http,
+  chainFromName,
+  BaseClient,
+} from "aside";
 
-const cdn = new ArkaCDN({
-  /* chain config */
+const kaolin = chainFromName("kaolin");
+const cdn = ArkaCDN.create({
+  publicClient: PublicClient({ chain: kaolin, transport: http() }),
+  wallets: WalletClient({ account, chain: kaolin, transport: http() }),
 });
 
 const client = new BaseClient({
@@ -169,7 +242,7 @@ const profile = await client.getOrCreate();
 
 ---
 
-## Social graph â€” follow, friend, block
+## Social graph — follow, friend, block
 
 `client.social()` returns a `SocialClient` that manages the full social graph for that user.
 
@@ -235,7 +308,7 @@ const blockedList = await social.getBlockedUsers();
 
 ---
 
-## Content feed â€” posts, reactions, comments
+## Content feed — posts, reactions, comments
 
 `client.feed()` returns a `FeedClient` for posting content and interacting with it.
 
@@ -305,7 +378,7 @@ const counts = await feed.getReactionCounts(post.entityKey);
 const comment = await feed.addComment(post.entityKey, "Great post!");
 
 // Edit your own comment
-await feed.editComment(comment.entityKey, "Great post! ðŸ”¥");
+await feed.editComment(comment.entityKey, "Great post! 🔥");
 
 // Delete your comment
 await feed.deleteComment(comment.entityKey);
@@ -797,7 +870,7 @@ if (isFriendRequestQRValid(uri)) {
   }
 }
 
-// How long until expiry (ms) â€” negative means already expired
+// How long until expiry (ms) — negative means already expired
 const msLeft = friendRequestQRExpiresIn(uri);
 console.log(`Expires in ${Math.round(msLeft / 1000)}s`);
 ```
@@ -815,9 +888,9 @@ const parsed = parseAsideUri(uri);
 
 ## Access tokens and session security
 
-Aside uses **ECDH P-256** for token issuance. The server never shares a secret with the client â€” each token derives a unique encryption key via ephemeral Diffie-Hellman. This gives per-token forward secrecy.
+Aside uses **ECDH P-256** for token issuance. The server never shares a secret with the client — each token derives a unique encryption key via ephemeral Diffie-Hellman. This gives per-token forward secrecy.
 
-### Setup (server side â€” run once)
+### Setup (server side — run once)
 
 ```ts
 import { generateAppKeyPair } from "aside";
@@ -876,7 +949,7 @@ const session = await manager.validateSession(request, appKey.privateKey, {
 });
 
 if (session.valid) {
-  // Proceed â€” nonce + timestamp + HMAC all verified
+  // Proceed — nonce + timestamp + HMAC all verified
 }
 ```
 
@@ -904,7 +977,7 @@ The power of Aside is that **all apps share the same identity and social graph**
 ### Example: App B reads App A's followers
 
 ```ts
-// In App B â€” reading followers of "alice-uuid" even though they were created in App A
+// In App B — reading followers of "alice-uuid" even though they were created in App A
 const aliceClient = new BaseClient({
   uuid: "alice-uuid",
   wallet: "0xAlice...",
@@ -913,7 +986,7 @@ const aliceClient = new BaseClient({
 const social = aliceClient.social();
 
 const followers = await social.getFollowers();
-// Returns followers created by *any* Aside app â€” App A, App B, App C, etc.
+// Returns followers created by *any* Aside app — App A, App B, App C, etc.
 ```
 
 ### Example: A game reads a social app's friend list
@@ -974,13 +1047,36 @@ Each app gets its own isolated namespace. Different apps never overwrite each ot
 Replicate the base profile to additional blockchains in one call:
 
 ```ts
-import { ArkaCDN, BaseClient } from "aside";
+import {
+  ArkaCDN,
+  PublicClient,
+  WalletClient,
+  http,
+  chainFromName,
+  BaseClient,
+} from "aside";
 
-const kaolinCdn = new ArkaCDN({
-  /* kaolin chain */
+const kaolinCdn = ArkaCDN.create({
+  publicClient: PublicClient({
+    chain: chainFromName("kaolin"),
+    transport: http(),
+  }),
+  wallets: WalletClient({
+    account,
+    chain: chainFromName("kaolin"),
+    transport: http(),
+  }),
 });
-const mendozaCdn = new ArkaCDN({
-  /* mendoza chain */
+const mendozaCdn = ArkaCDN.create({
+  publicClient: PublicClient({
+    chain: chainFromName("mendoza"),
+    transport: http(),
+  }),
+  wallets: WalletClient({
+    account,
+    chain: chainFromName("mendoza"),
+    transport: http(),
+  }),
 });
 
 await client.sync([kaolinCdn, mendozaCdn]);
@@ -994,10 +1090,24 @@ await client.sync([kaolinCdn, mendozaCdn]);
 Watch multiple chains and react when a profile appears or disappears:
 
 ```ts
-import { ArkaCDN } from "aside";
+import {
+  ArkaCDN,
+  PublicClient,
+  WalletClient,
+  http,
+  chainFromName,
+} from "aside";
 
-const kaolinCdn = new ArkaCDN({
-  /* kaolin chain */
+const kaolinCdn = ArkaCDN.create({
+  publicClient: PublicClient({
+    chain: chainFromName("kaolin"),
+    transport: http(),
+  }),
+  wallets: WalletClient({
+    account,
+    chain: chainFromName("kaolin"),
+    transport: http(),
+  }),
 });
 
 const watcher = client.watch({
@@ -1020,7 +1130,7 @@ watcher.stop();
 
 ## SnowflakeGenerator
 
-128-bit IDs with embedded 52-bit permission bitmasks â€” useful for encoding user roles and permissions into access tokens.
+128-bit IDs with embedded 52-bit permission bitmasks — useful for encoding user roles and permissions into access tokens.
 
 ```ts
 import { SnowflakeGenerator } from "aside";
@@ -1037,8 +1147,8 @@ const id = gen.generate({ permissions: ["read", "write"] });
 const decoded = gen.decode(id);
 console.log(decoded.permissions); // ['read', 'write']
 
-// Static helpers â€” no instance needed
-SnowflakeGenerator.hasPermission(id, 2); // false â€” no admin
+// Static helpers — no instance needed
+SnowflakeGenerator.hasPermission(id, 2); // false — no admin
 ```
 
 ---
@@ -1072,7 +1182,7 @@ const plain = await aesDecrypt(key, ciphertext, iv);
 const sig = await hmacSign(key, new TextEncoder().encode("message"));
 const ok = await hmacVerify(key, sig, new TextEncoder().encode("message"));
 
-// ECDH (same keys derived on both sides â€” no secret transmission)
+// ECDH (same keys derived on both sides — no secret transmission)
 const serverKey = await generateAppKeyPair();
 const clientKey = await generateAppKeyPair();
 const serverSide = await ecdhDeriveKeys(
@@ -1083,10 +1193,10 @@ const clientSide = await ecdhDeriveKeys(
   clientKey.privateKey,
   serverKey.publicKey,
 );
-// serverSide.encKey === clientSide.encKey âœ“
+// serverSide.encKey === clientSide.encKey ✓
 ```
 
-All functions use `globalThis.crypto.subtle` â€” no Node.js built-ins, no polyfills needed.
+All functions use `globalThis.crypto.subtle` — no Node.js built-ins, no polyfills needed.
 
 ---
 
@@ -1362,7 +1472,7 @@ All functions use `globalThis.crypto.subtle` â€” no Node.js built-ins, no p
 ## Release workflow
 
 ```bash
-# bump version, generate changelog, tag, push â†’ CI publishes to npm
+# bump version, generate changelog, tag, push → CI publishes to npm
 npm run release
 ```
 
