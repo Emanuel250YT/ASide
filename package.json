@@ -5,6 +5,9 @@
   "license": "MIT",
   "author": "Emanuel250yt",
   "type": "module",
+  "repository": {
+    "url": "https://github.com/Emanuel250YT/ASide"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
