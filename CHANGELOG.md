@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.0.3
+
+[compare changes](https://github.com/Emanuel250YT/ASide/compare/v1.0.2...v1.0.3)
+
+### 🏡 Chore
+
+- Release v1.0.2 ([50dc649](https://github.com/Emanuel250YT/ASide/commit/50dc649))
+
+### ❤️ Contributors
+
+- Emanuel250YT <emanuel250gameryt@gmail.com>
+
 ## v1.0.2
 
 [compare changes](https://github.com/Emanuel250YT/ASide/compare/v1.0.1...v1.0.2)
