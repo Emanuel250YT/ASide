@@ -60,11 +60,21 @@ export interface ExtensionData<T extends Record<string, unknown> = Record<string
  * or pass it at construction time for immediate use.
  */
 export interface BaseClientOptions {
-  /** Stable cross-chain identifier. Generate once with `generateUUID()` from arka-cdn. */
+  /**
+   * Proposed stable cross-chain identifier. Generate once with
+   * `crypto.randomUUID()` or any UUID v4 generator and persist it.
+   *
+   * This is the **proposed** UUID used when creating a fresh profile.
+   * After `getOrCreate()` / `get()` resolves, `client.uuid` is always
+   * the canonical UUID found on-chain (oldest profile for this wallet).
+   */
   uuid: string
-  /** Blockchain wallet address. */
+  /** Blockchain wallet address — the immutable owner identity. */
   wallet: string
-  /** Profile photo URL or ArkaCDN entity key. */
+  /**
+   * Profile photo URL or ArkaCDN file manifest key (`0x`-prefixed).
+   * Use `client.uploadPhoto()` to upload a buffer and obtain the key.
+   */
   photo: string
   /** Optional display name. */
   displayName?: string
@@ -78,6 +88,21 @@ export interface BaseClientOptions {
 }
 
 // ─── Result shapes ─────────────────────────────────────────────────────────────
+
+/**
+ * Options for {@link BaseClient.getOrCreate}.
+ */
+export interface GetOrCreateOptions {
+  /**
+   * When `true`, if the proposed `uuid` is already claimed by a **different**
+   * wallet, a new `crypto.randomUUID()` is automatically generated before
+   * creating the profile.
+   *
+   * Has no effect when a profile for this wallet already exists on-chain.
+   * @default false
+   */
+  autoRetryOnUuidConflict?: boolean
+}
 
 /** Returned by base profile operations (get, getOrCreate, update, sync). */
 export interface BaseProfileResult {
@@ -120,8 +145,10 @@ export interface BaseClientInstance {
   /**
    * Fetches the profile from the current chain.
    * If no profile exists, creates one with the options passed to `createBaseClient`.
+   * @param options.autoRetryOnUuidConflict - Re-generate the UUID if it is
+   * already taken by a different wallet before creating.
    */
-  getOrCreate(): Promise<BaseProfileResult>
+  getOrCreate(options?: GetOrCreateOptions): Promise<BaseProfileResult>
 
   /**
    * Updates mutable fields of an existing profile on the current chain.
@@ -152,6 +179,26 @@ export interface BaseClientInstance {
    * ```
    */
   extend<T extends Record<string, unknown>>(namespace: string): ExtensionClientInstance<T>
+
+  /**
+   * Uploads an image buffer to ArkaCDN file storage, sets `this.photo` to the
+   * returned manifest key, and returns it.
+   *
+   * Manifest keys start with `0x` and can be passed directly to `update()`.
+   */
+  uploadPhoto(
+    buffer: Uint8Array | ArrayBuffer,
+    options?: { filename?: string; mimeType?: string },
+  ): Promise<string>
+
+  /**
+   * Downloads the profile photo from ArkaCDN file storage.
+   * Returns `null` when `this.photo` is a plain URL rather than a manifest key.
+   */
+  downloadPhoto(options?: {
+    encryption?: { phrase: string; secret: string }
+    onProgress?: (progress: { fetched: number; total: number }) => void
+  }): Promise<{ data: Uint8Array; filename: string; mimeType: string; size: number } | null>
 }
 
 /**

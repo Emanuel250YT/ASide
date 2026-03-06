@@ -45,6 +45,7 @@ import type {
   BaseProfileResult,
   CreateAccessTokenOptions,
   CreateAccessTokenResult,
+  GetOrCreateOptions,
   WatcherOptions,
 } from './types.js'
 
@@ -94,31 +95,42 @@ export class BaseClient {
       .query()
       .where([
         eq(ATTR_TYPE, PROFILE_TYPE),
-        eq(ATTR_UUID, this.uuid),
         eq(ATTR_WALLET, this.wallet),
       ])
       .withPayload(true)
       .withAttributes(true)
       .fetch()
 
-    const entity = result.entities[0]
+    if (result.entities.length === 0) return null
 
+    // Keep only entities that genuinely belong to this wallet:
+    //   1. The on-chain entity owner (the wallet that signed the transaction) must
+    //      match when the chain exposes it.
+    //   2. The payload's wallet field must also match (guards against spoofed payloads).
+    const valid = result.entities
+      .map(e => ({ entity: e, profile: e.toJson() as BaseProfileData }))
+      .filter(({ entity, profile }) => {
+        if (profile.wallet.toLowerCase() !== this.wallet.toLowerCase()) return false
+        const owner = (entity as { owner?: string }).owner
+        if (owner && owner.toLowerCase() !== this.wallet.toLowerCase()) return false
+        return true
+      })
 
-    if (!entity) return null
+    if (valid.length === 0) return null
 
+    // Always resolve to the oldest profile for this wallet so that migrations,
+    // re-creations, and multi-chain scenarios consistently produce one canonical
+    // identity.
+    valid.sort((a, b) => a.profile.createdAt - b.profile.createdAt)
 
-    const profile = entity.toJson() as BaseProfileData
+    const { entity, profile } = valid[0]!
 
-    // Integrity check — the payload's wallet and uuid must match the client's
-    // identity.  A mismatch means the entity was tampered with or belongs to a
-    // different owner and must be rejected.
-    if (profile.uuid !== this.uuid || profile.wallet.toLowerCase() !== this.wallet.toLowerCase()) {
-      throw new Error(
-        `ASide: data integrity check failed — entity payload (uuid="${profile.uuid}", wallet="${profile.wallet}") does not match client identity (uuid="${this.uuid}", wallet="${this.wallet}")`,
-      )
-    }
+    // UUID discovery — the canonical UUID is the one stored in the oldest
+    // on-chain profile.  The uuid passed to the constructor is only the
+    // "proposed" value used when no profile exists yet.
+    this.uuid = profile.uuid
 
-    // Sync mutable fields from chain. uuid and wallet are immutable — never re-assigned.
+    // Sync mutable fields.
     this.bio = profile.bio
     this.displayName = profile.displayName
     this.photo = profile.photo
@@ -177,10 +189,32 @@ export class BaseClient {
   /**
    * Fetches the profile. If none exists, creates it on the current chain.
    */
-  async getOrCreate(): Promise<BaseProfileResult> {
+  async getOrCreate(options?: GetOrCreateOptions): Promise<BaseProfileResult> {
     const existing = await this.findProfile(this.cdn)
-
     if (existing) return existing
+
+    // UUID collision detection: before writing, check whether the proposed UUID
+    // is already claimed by a *different* wallet.  If so, and the caller opted
+    // in to automatic collision resolution, generate a fresh UUID so the new
+    // profile doesn't collide with an unrelated one.
+    if (options?.autoRetryOnUuidConflict) {
+      const conflictResult = await this.cdn.entity
+        .query()
+        .where([eq(ATTR_TYPE, PROFILE_TYPE), eq(ATTR_UUID, this.uuid)])
+        .withPayload(true)
+        .fetch()
+
+      const conflict = conflictResult.entities.find((e) => {
+        const p = e.toJson() as BaseProfileData
+        return p.wallet.toLowerCase() !== this.wallet.toLowerCase()
+      })
+
+      if (conflict) {
+        // Proposed UUID is taken by a different wallet — mint a new one.
+        this.uuid = crypto.randomUUID()
+      }
+    }
+
     return this.createProfileOn(this.cdn)
   }
 
@@ -368,5 +402,66 @@ export class BaseClient {
    */
   watch(opts: WatcherOptions): ProfileWatcher {
     return new ProfileWatcher(this, opts)
+  }
+
+  // ─── File storage (arka-cdn file API) ──────────────────────────────────────
+
+  /**
+   * Uploads an image buffer to ArkaCDN's chunked file storage and sets
+   * `this.photo` to the returned manifest key.
+   *
+   * The manifest key has a `0x` prefix and can be passed directly to
+   * `client.update({ photo: manifestKey })` or to `downloadPhoto()`.
+   *
+   * @example
+   * ```ts
+   * import { readFileSync } from 'node:fs'
+   * const buf = readFileSync('avatar.png')
+   * const key = await client.uploadPhoto(buf, { filename: 'avatar.png', mimeType: 'image/png' })
+   * await client.update({ photo: key })
+   * ```
+   */
+  async uploadPhoto(
+    buffer: Uint8Array | ArrayBuffer,
+    options?: { filename?: string; mimeType?: string },
+  ): Promise<string> {
+    type FileService = {
+      upload(data: Uint8Array, opts: { filename: string; mimeType: string }): Promise<{ manifestKey: string }>
+    }
+    const fileService = (this.cdn as ArkaCDN & { file: FileService }).file
+    const data = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer
+    const { manifestKey } = await fileService.upload(data, {
+      filename: options?.filename ?? 'photo',
+      mimeType: options?.mimeType ?? 'image/jpeg',
+    })
+    this.photo = manifestKey
+    return manifestKey
+  }
+
+  /**
+   * Downloads the profile photo from ArkaCDN file storage.
+   * Returns `null` when `this.photo` is a plain URL (not a manifest key).
+   *
+   * A manifest key is recognisable by its `0x` prefix — exactly what
+   * `uploadPhoto()` returns.
+   *
+   * @example
+   * ```ts
+   * const result = await client.downloadPhoto()
+   * if (result) {
+   *   const blob = new Blob([result.data], { type: result.mimeType })
+   * }
+   * ```
+   */
+  async downloadPhoto(options?: {
+    encryption?: { phrase: string; secret: string }
+    onProgress?: (progress: { fetched: number; total: number }) => void
+  }): Promise<{ data: Uint8Array; filename: string; mimeType: string; size: number } | null> {
+    if (!this.photo || !this.photo.startsWith('0x')) return null
+    type FileService = {
+      download(key: string, opts?: object): Promise<{ data: Uint8Array; filename: string; mimeType: string; size: number }>
+    }
+    const fileService = (this.cdn as ArkaCDN & { file: FileService }).file
+    return fileService.download(this.photo, options ?? {})
   }
 }
