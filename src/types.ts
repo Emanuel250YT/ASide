@@ -600,3 +600,291 @@ export interface QREncodeOptions {
   message?: string
 }
 
+// ─── Events ───────────────────────────────────────────────────────────────────
+
+export type EventModality = 'online' | 'in-person' | 'hybrid'
+export type EventVisibility = 'public' | 'private' | 'unlisted'
+export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed'
+export type RSVPStatus = 'pending' | 'approved' | 'rejected' | 'waitlist' | 'cancelled'
+export type OrganizerRole = 'owner' | 'admin' | 'host' | 'checkin_manager'
+export type QuestionType = 'text' | 'multiple_choice' | 'checkbox' | 'email' | 'phone' | 'wallet'
+export type TicketStatus = 'active' | 'cancelled' | 'transferred' | 'used'
+export type InviteStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+export type CheckinMethod = 'qr' | 'email' | 'manual'
+
+export interface EventLocation {
+  name?: string
+  address?: string
+  city?: string
+  country?: string
+  lat?: number
+  lng?: number
+  /** Online meeting URL (for online / hybrid events). */
+  url?: string
+}
+
+export interface EventAgendaItem {
+  id: string
+  title: string
+  description?: string
+  startsAt: number
+  endsAt: number
+  speakerUuid?: string
+}
+
+export interface EventData {
+  entityKey: string
+  organizerUuid: string
+  organizerWallet: string
+  title: string
+  description?: string
+  coverPhoto?: string
+  startsAt: number
+  endsAt: number
+  timezone: string
+  modality: EventModality
+  visibility: EventVisibility
+  status: EventStatus
+  capacity?: number
+  attendeesVisible: boolean
+  registrationOpen: boolean
+  requiresApproval: boolean
+  location?: EventLocation
+  agenda?: EventAgendaItem[]
+  tags?: string[]
+  categories?: string[]
+  createdAt: number
+  updatedAt: number
+}
+
+export interface EventOrganizer {
+  entityKey: string
+  eventEntityKey: string
+  userUuid: string
+  userWallet: string
+  role: OrganizerRole
+  addedAt: number
+}
+
+export interface EventRole {
+  entityKey: string
+  eventEntityKey: string
+  userUuid: string
+  role: OrganizerRole
+  assignedAt: number
+  assignedByUuid: string
+}
+
+export interface RSVPRecord {
+  entityKey: string
+  eventEntityKey: string
+  attendeeUuid: string
+  attendeeWallet: string
+  status: RSVPStatus
+  registeredAt: number
+  updatedAt: number
+  checkedIn: boolean
+  checkedInAt?: number
+  answers?: Record<string, string | string[]>
+}
+
+export interface EventQuestion {
+  entityKey: string
+  eventEntityKey: string
+  id: string
+  label: string
+  type: QuestionType
+  required: boolean
+  options?: string[]
+  order: number
+  createdAt: number
+}
+
+export interface TicketType {
+  entityKey: string
+  eventEntityKey: string
+  name: string
+  description?: string
+  price: number
+  currency: string
+  capacity?: number
+  sold: number
+  status: 'active' | 'paused' | 'sold_out'
+  saleEndsAt?: number
+  earlyBirdPrice?: number
+  earlyBirdEndsAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface TicketRecord {
+  entityKey: string
+  ticketTypeEntityKey: string
+  eventEntityKey: string
+  ownerUuid: string
+  ownerWallet: string
+  status: TicketStatus
+  purchasedAt: number
+  transferredTo?: string
+  checkedIn: boolean
+  checkedInAt?: number
+}
+
+export interface DiscountCode {
+  entityKey: string
+  eventEntityKey: string
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+  maxUses?: number
+  usedCount: number
+  expiresAt?: number
+  status: 'active' | 'paused' | 'exhausted'
+  createdAt: number
+}
+
+export interface WaitlistEntry {
+  entityKey: string
+  eventEntityKey: string
+  userUuid: string
+  userWallet: string
+  joinedAt: number
+  position: number
+  status: 'waiting' | 'promoted' | 'removed'
+}
+
+export interface EventInvite {
+  entityKey: string
+  eventEntityKey: string
+  fromUuid: string
+  email?: string
+  toUuid?: string
+  status: InviteStatus
+  sentAt: number
+  respondedAt?: number
+}
+
+export interface CheckinRecord {
+  entityKey: string
+  eventEntityKey: string
+  attendeeUuid: string
+  method: CheckinMethod
+  checkedInAt: number
+  checkedInByUuid: string
+  undone: boolean
+}
+
+export interface EventCalendar {
+  entityKey: string
+  ownerUuid: string
+  ownerWallet: string
+  name: string
+  description?: string
+  visibility: 'public' | 'private'
+  createdAt: number
+  updatedAt: number
+}
+
+export interface EventCalendarEntry {
+  entityKey: string
+  calendarEntityKey: string
+  eventEntityKey: string
+  addedAt: number
+}
+
+export interface EventNotification {
+  entityKey: string
+  toUuid: string
+  fromUuid?: string
+  eventEntityKey?: string
+  type: 'rsvp_approved' | 'rsvp_rejected' | 'reminder' | 'announcement' | 'invite' | 'waitlist_promoted'
+  message: string
+  read: boolean
+  createdAt: number
+}
+
+export interface EventAnalytics {
+  eventEntityKey: string
+  views: number
+  registrations: number
+  approved: number
+  waitlist: number
+  checkins: number
+  conversionRate: number
+  revenue: number
+}
+
+// ─── Event create / update options ────────────────────────────────────────────
+
+export interface CreateEventOptions {
+  title: string
+  description?: string
+  startsAt: number
+  endsAt: number
+  timezone?: string
+  modality?: EventModality
+  visibility?: EventVisibility
+  capacity?: number
+  location?: EventLocation
+  tags?: string[]
+  categories?: string[]
+  requiresApproval?: boolean
+}
+
+export interface UpdateEventOptions {
+  title?: string
+  description?: string
+  startsAt?: number
+  endsAt?: number
+  timezone?: string
+  modality?: EventModality
+  visibility?: EventVisibility
+  /** Internal — status transitions. Prefer named methods (publishEvent, cancelEvent, etc.). */
+  status?: EventStatus
+  capacity?: number
+  location?: EventLocation
+  agenda?: EventAgendaItem[]
+  tags?: string[]
+  categories?: string[]
+  requiresApproval?: boolean
+  registrationOpen?: boolean
+  attendeesVisible?: boolean
+  coverPhoto?: string
+}
+
+export interface CreateQuestionOptions {
+  label: string
+  type: QuestionType
+  required?: boolean
+  options?: string[]
+  order?: number
+}
+
+export interface CreateTicketTypeOptions {
+  name: string
+  description?: string
+  price: number
+  currency?: string
+  capacity?: number
+  saleEndsAt?: number
+  earlyBirdPrice?: number
+  earlyBirdEndsAt?: number
+}
+
+export interface CreateDiscountCodeOptions {
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+  maxUses?: number
+  expiresAt?: number
+}
+
+export interface EventQueryOptions extends PaginationOptions {
+  organizerUuid?: string
+  modality?: EventModality
+  city?: string
+  category?: string
+  tags?: string[]
+  search?: string
+}
+

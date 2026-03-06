@@ -42,6 +42,7 @@ export { SnowflakeGenerator } from './snowflake.js'
 export { ProfileWatcher } from './watcher.js'
 export { SocialClient } from './social.js'
 export { FeedClient } from './feed.js'
+export { EventClient } from './event.js'
 
 // ─── Crypto utilities ─────────────────────────────────────────────────────────
 export {
@@ -112,6 +113,39 @@ export type {
   ProfileQRData,
   FriendRequestQRData,
   QREncodeOptions,
+  // Events
+  EventModality,
+  EventVisibility,
+  EventStatus,
+  RSVPStatus,
+  OrganizerRole,
+  QuestionType,
+  TicketStatus,
+  InviteStatus,
+  CheckinMethod,
+  EventLocation,
+  EventAgendaItem,
+  EventData,
+  EventOrganizer,
+  EventRole,
+  RSVPRecord,
+  EventQuestion,
+  TicketType,
+  TicketRecord,
+  DiscountCode,
+  WaitlistEntry,
+  EventInvite,
+  CheckinRecord,
+  EventCalendar,
+  EventCalendarEntry,
+  EventNotification,
+  EventAnalytics,
+  CreateEventOptions,
+  UpdateEventOptions,
+  CreateQuestionOptions,
+  CreateTicketTypeOptions,
+  CreateDiscountCodeOptions,
+  EventQueryOptions,
 } from './types.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -132,4 +166,23 @@ export {
   SOCIAL_COMMENT_TYPE,
   SOCIAL_BLOCK_TYPE,
   SNOWFLAKE_EPOCH,
+  ATTR_EVENT_KEY,
+  ATTR_EVENT_STATUS,
+  EVENT_TYPE,
+  EVENT_ORGANIZER_TYPE,
+  EVENT_ROLE_TYPE,
+  EVENT_RSVP_TYPE,
+  EVENT_QUESTION_TYPE,
+  EVENT_TICKET_TYPE_ENTITY,
+  EVENT_TICKET_TYPE,
+  EVENT_DISCOUNT_TYPE,
+  EVENT_WAITLIST_TYPE,
+  EVENT_INVITE_TYPE,
+  EVENT_CHECKIN_TYPE,
+  EVENT_CALENDAR_TYPE,
+  EVENT_CALENDAR_ENTRY_TYPE,
+  EVENT_CALENDAR_FOLLOW_TYPE,
+  EVENT_NOTIFICATION_TYPE,
+  EVENT_ANNOUNCEMENT_TYPE,
+  EVENT_REPORT_TYPE,
 } from './constants.js'

@@ -8,6 +8,10 @@ export const ATTR_NAMESPACE = 'aside_namespace'
 export const ATTR_TARGET_UUID = 'aside_social_target'      // followee / blocked / friend
 export const ATTR_TARGET_KEY = 'aside_social_target_key'  // post/comment entity key
 
+/** Attribute keys for event entities. */
+export const ATTR_EVENT_KEY = 'aside_event_key'        // links sub-entities to their event
+export const ATTR_EVENT_STATUS = 'aside_event_status'  // for status-based filtering
+
 /** Entity type discriminators stored in `aside.type`. */
 export const PROFILE_TYPE = 'profile'
 export const EXTENSION_TYPE = 'extension'
@@ -19,6 +23,25 @@ export const SOCIAL_POST_TYPE = 'aside.social.post'
 export const SOCIAL_REACTION_TYPE = 'aside.social.reaction'
 export const SOCIAL_COMMENT_TYPE = 'aside.social.comment'
 export const SOCIAL_BLOCK_TYPE = 'aside.social.block'
+
+/** Event entity type discriminators. */
+export const EVENT_TYPE = 'aside.event'
+export const EVENT_ORGANIZER_TYPE = 'aside.event.organizer'
+export const EVENT_ROLE_TYPE = 'aside.event.role'
+export const EVENT_RSVP_TYPE = 'aside.event.rsvp'
+export const EVENT_QUESTION_TYPE = 'aside.event.question'
+export const EVENT_TICKET_TYPE_ENTITY = 'aside.event.ticket_type'
+export const EVENT_TICKET_TYPE = 'aside.event.ticket'
+export const EVENT_DISCOUNT_TYPE = 'aside.event.discount'
+export const EVENT_WAITLIST_TYPE = 'aside.event.waitlist'
+export const EVENT_INVITE_TYPE = 'aside.event.invite'
+export const EVENT_CHECKIN_TYPE = 'aside.event.checkin'
+export const EVENT_CALENDAR_TYPE = 'aside.event.calendar'
+export const EVENT_CALENDAR_ENTRY_TYPE = 'aside.event.calendar_entry'
+export const EVENT_CALENDAR_FOLLOW_TYPE = 'aside.event.calendar_follow'
+export const EVENT_NOTIFICATION_TYPE = 'aside.event.notification'
+export const EVENT_ANNOUNCEMENT_TYPE = 'aside.event.announcement'
+export const EVENT_REPORT_TYPE = 'aside.event.report'
 
 /**
  * Default entity TTL: 365 days in seconds.

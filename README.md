@@ -28,17 +28,34 @@ Works in **Node.js â‰¥ 16** and all modern **browsers** (uses the WebCrypto 
 
 1. [Quick start](#quick-start)
 2. [User profiles](#user-profiles)
-3. [Social graph â€” follow, friend, block](#social-graph--follow-friend-block)
-4. [Content feed â€” posts, reactions, comments](#content-feed--posts-reactions-comments)
-5. [QR codes and deep links](#qr-codes-and-deep-links)
-6. [Access tokens and session security](#access-tokens-and-session-security)
-7. [Cross-app integration](#cross-app-integration)
-8. [Per-app extension data](#per-app-extension-data)
-9. [Multi-chain replication](#multi-chain-replication)
-10. [ProfileWatcher](#profilewatcher)
-11. [SnowflakeGenerator](#snowflakegenerator)
-12. [Crypto utilities](#crypto-utilities)
-13. [API reference](#api-reference)
+3. [Social graph — follow, friend, block](#social-graph--follow-friend-block)
+4. [Content feed — posts, reactions, comments](#content-feed--posts-reactions-comments)
+5. [Events](#events)
+   - [Creating & publishing events](#creating--publishing-events)
+   - [Agenda management](#agenda-management)
+   - [Organizers & role-based permissions](#organizers--role-based-permissions)
+   - [Registration / RSVP](#registration--rsvp)
+   - [Guest list](#guest-list)
+   - [Custom registration questions](#custom-registration-questions)
+   - [Ticket types & tickets](#ticket-types--tickets)
+   - [Discount codes](#discount-codes)
+   - [Waitlist](#waitlist)
+   - [Invitations](#invitations)
+   - [Check-in](#check-in)
+   - [Announcements & reminders](#announcements--reminders)
+   - [Analytics](#analytics)
+   - [Calendars & calendar following](#calendars--calendar-following)
+   - [Notifications](#notifications)
+   - [Moderation](#moderation)
+6. [QR codes and deep links](#qr-codes-and-deep-links)
+7. [Access tokens and session security](#access-tokens-and-session-security)
+8. [Cross-app integration](#cross-app-integration)
+9. [Per-app extension data](#per-app-extension-data)
+10. [Multi-chain replication](#multi-chain-replication)
+11. [ProfileWatcher](#profilewatcher)
+12. [SnowflakeGenerator](#snowflakegenerator)
+13. [Crypto utilities](#crypto-utilities)
+14. [API reference](#api-reference)
 
 ---
 
@@ -295,6 +312,436 @@ await feed.deleteComment(comment.entityKey);
 
 // Get all comments on a post
 const comments = await feed.getComments(post.entityKey, { limit: 50 });
+```
+
+---
+
+## Events
+
+`client.events()` returns an `EventClient` — a full Luma-style event platform backed by the same on-chain identity. Events are linked to your profile, publicly discoverable, and composable with the rest of the ASide social graph.
+
+### Creating & publishing events
+
+```ts
+const events = client.events();
+const now = Date.now();
+
+// Create a new event in DRAFT status
+const event = await events.createEvent({
+  title: "Arkiv Hackathon 2025",
+  description: "A 48-hour hackathon on the Arkiv network.",
+  startsAt: now + 7 * 24 * 60 * 60 * 1000, // 1 week from now
+  endsAt: now + 9 * 24 * 60 * 60 * 1000, // 9 days from now
+  timezone: "UTC",
+  modality: "hybrid", // 'in-person' | 'online' | 'hybrid'
+  visibility: "public", // 'public' | 'unlisted' | 'private'
+  capacity: 200,
+  location: {
+    name: "Techspace",
+    city: "Berlin",
+    country: "DE",
+    url: "https://meet.example.com",
+  },
+  tags: ["hackathon", "web3"],
+  categories: ["technology"],
+  requiresApproval: false,
+});
+// event.status === 'draft'
+
+// Publish — makes the event publicly visible
+const published = await events.publishEvent(event.entityKey);
+// published.status === 'published'
+
+// Update fields
+const updated = await events.updateEvent(event.entityKey, {
+  description: "A 48-hour hackathon — prizes worth $10,000.",
+  capacity: 250,
+});
+
+// Duplicate as a new draft
+const copy = await events.duplicateEvent(event.entityKey, {
+  title: "Arkiv Hackathon — Spring Edition",
+});
+
+// Cancel a draft or published event
+const cancelled = await events.cancelEvent(copy.entityKey);
+// cancelled.status === 'cancelled'
+
+// Fetch a single event by entity key
+const fetched = await events.getEvent(event.entityKey);
+
+// Discovery
+const myEvents = await events.listEvents();
+const upcoming = await events.listUpcomingEvents();
+const past = await events.listPastEvents();
+const inBerlin = await events.listByCity("Berlin");
+const techEvents = await events.listByCategory("technology");
+const trending = await events.listTrending();
+const results = await events.searchEvents("hackathon");
+```
+
+### Agenda management
+
+```ts
+// Add an agenda item
+const withAgenda = await events.addAgendaItem(event.entityKey, {
+  title: "Opening Keynote",
+  description: "Welcome to Arkiv Hackathon 2025!",
+  startsAt: now + 7 * 24 * 60 * 60 * 1000,
+  endsAt: now + 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+  speakerUuid: "speaker-uuid",
+});
+
+const item = withAgenda.agenda![0];
+
+// Update an item
+await events.updateAgendaItem(event.entityKey, item.id, {
+  title: "Opening Keynote (updated)",
+});
+
+// Remove an item
+await events.removeAgendaItem(event.entityKey, item.id);
+```
+
+### Organizers & role-based permissions
+
+```ts
+// Add a co-organizer
+const coOrg = await events.addOrganizer(
+  event.entityKey,
+  "co-organizer-uuid",
+  "co-organizer-wallet",
+  "co-organizer",
+);
+
+// Change their role: 'owner' | 'co-organizer' | 'moderator' | 'volunteer'
+await events.changeOrganizerRole(event.entityKey, coOrg.entityKey, "moderator");
+
+// Assign a custom role to an attendee
+await events.assignRole(event.entityKey, "attendee-uuid", "speaker");
+
+// Check a permission
+const canManage = await events.checkPermission(
+  event.entityKey,
+  "attendee-uuid",
+  "manage_event",
+);
+
+// List organizers
+const organizers = await events.listOrganizers(event.entityKey);
+
+// Remove an organizer
+await events.removeOrganizer(event.entityKey, coOrg.entityKey);
+```
+
+### Registration / RSVP
+
+```ts
+// Register for an event (creates an RSVP)
+const rsvp = await events.register(event.entityKey);
+// rsvp.status === 'approved' (if requiresApproval is false) or 'pending'
+
+// View all registrations (organizer view)
+const registrations = await events.listRegistrations(event.entityKey);
+
+// View your own registrations
+const myRSVPs = await events.listMyRegistrations();
+
+// Organizer: approve / reject pending RSVPs
+await events.approveRegistration(event.entityKey, rsvp.entityKey);
+await events.rejectRegistration(event.entityKey, rsvp.entityKey);
+
+// Mark attendance
+await events.markAttendance(event.entityKey, rsvp.entityKey);
+
+// Close / reopen registration
+await events.closeRegistration(event.entityKey);
+await events.reopenRegistration(event.entityKey);
+
+// Toggle manual approval gate
+await events.enableManualApproval(event.entityKey);
+await events.disableManualApproval(event.entityKey);
+
+// Cancel your own RSVP
+await events.cancelRegistration(event.entityKey);
+```
+
+### Guest list
+
+```ts
+// Toggle attendee list visibility
+await events.showAttendeesList(event.entityKey);
+await events.hideAttendeesList(event.entityKey);
+
+// List / search attendees (organizer)
+const attendees = await events.listAttendees(event.entityKey);
+const found = await events.searchAttendees(event.entityKey, "alice");
+
+// Remove an attendee
+await events.removeAttendee(event.entityKey, "attendee-uuid");
+```
+
+### Custom registration questions
+
+```ts
+// Create a question
+const q1 = await events.createQuestion(event.entityKey, {
+  label: "What's your Arkiv experience level?",
+  type: "select", // 'text' | 'select' | 'multiselect' | 'checkbox' | 'number'
+  options: ["Beginner", "Intermediate", "Advanced"],
+  required: true,
+});
+
+const q2 = await events.createQuestion(event.entityKey, {
+  label: "Dietary restrictions?",
+  type: "text",
+  required: false,
+});
+
+// Update a question
+await events.updateQuestion(q1.entityKey, { label: "Arkiv experience level?" });
+
+// Reorder questions
+await events.reorderQuestions(event.entityKey, [q2.entityKey, q1.entityKey]);
+
+// List all questions
+const questions = await events.listQuestions(event.entityKey);
+
+// Delete a question
+await events.deleteQuestion(q1.entityKey);
+```
+
+### Ticket types & tickets
+
+```ts
+// Create a free tier
+const freeTier = await events.createTicketType(event.entityKey, {
+  name: "Free Admission",
+  price: 0,
+  capacity: 100,
+  currency: "USD",
+});
+
+// Create a paid tier
+const paidTier = await events.createTicketType(event.entityKey, {
+  name: "VIP Pass",
+  price: 49.99,
+  capacity: 50,
+  currency: "USD",
+});
+
+// Update a ticket type
+await events.updateTicketType(paidTier.entityKey, { capacity: 75 });
+
+// Purchase a ticket
+const ticket = await events.purchaseTicket(event.entityKey, freeTier.entityKey);
+
+// Generate a QR code for the ticket
+const qr = await events.generateTicketQR(ticket.entityKey);
+// qr.qrData is an aside://v1/ticket URI
+
+// Validate the QR (returns the ticket entity if valid)
+const validated = await events.validateTicketQR(qr.qrData);
+
+// Transfer a ticket to another user
+await events.transferTicket(ticket.entityKey, "recipient-uuid");
+
+// Cancel a ticket
+await events.cancelTicket(ticket.entityKey);
+
+// List tickets
+const myTickets = await events.listMyTickets();
+const eventTickets = await events.listEventTickets(event.entityKey);
+
+// Manage ticket types
+const ticketTypes = await events.listTicketTypes(event.entityKey);
+await events.deleteTicketType(freeTier.entityKey);
+```
+
+### Discount codes
+
+```ts
+// Create a discount code
+const code = await events.createDiscountCode(event.entityKey, {
+  code: "HACK20",
+  discountPercent: 20,
+  maxUses: 50,
+  expiresAt: now + 30 * 24 * 60 * 60 * 1000,
+});
+
+// Validate a code before purchase
+const validation = await events.validateDiscountCode(event.entityKey, "HACK20");
+// { valid: true, discountPercent: 20, code: 'HACK20' }
+
+// List all codes (organizer)
+const codes = await events.listDiscountCodes(event.entityKey);
+
+// Delete a code
+await events.deleteDiscountCode(code.entityKey);
+```
+
+### Waitlist
+
+```ts
+// Join the waitlist (when event is full)
+const entry = await events.joinWaitlist(event.entityKey);
+
+// Check the waitlist
+const waitlist = await events.listWaitlist(event.entityKey);
+
+// Promote the first person on the waitlist to registered
+await events.promoteFromWaitlist(event.entityKey);
+
+// Leave the waitlist
+await events.leaveWaitlist(event.entityKey);
+```
+
+### Invitations
+
+```ts
+// Invite a single attendee by email
+const invite = await events.inviteByEmail(
+  event.entityKey,
+  "alice@example.com",
+  { message: "You're invited!" },
+);
+
+// Bulk invite
+const invites = await events.inviteList(event.entityKey, [
+  { email: "bob@example.com" },
+  { email: "carol@example.com" },
+]);
+
+// Resend or cancel an invite
+await events.resendInvite(invite.entityKey);
+await events.cancelInvite(invite.entityKey);
+
+// View all invites
+const allInvites = await events.listInvites(event.entityKey);
+
+// Accept / reject an invite (invitee side)
+await events.acceptInvite(invite.entityKey);
+await events.rejectInvite(invite.entityKey);
+```
+
+### Check-in
+
+```ts
+// Check in by scanning the attendee's ticket QR
+const checkin = await events.checkinByQR(event.entityKey, qr.qrData);
+
+// Check in by email (fallback)
+await events.checkinByEmail(event.entityKey, "alice@example.com");
+
+// Manual check-in by UUID
+await events.checkinManual(event.entityKey, "attendee-uuid");
+
+// Undo accidental check-in
+await events.undoCheckin(event.entityKey, checkin.entityKey);
+
+// View all check-ins
+const checkins = await events.listCheckins(event.entityKey);
+
+// Check if a specific attendee has checked in
+const status = await events.getCheckinStatus(event.entityKey, "attendee-uuid");
+// { checkedIn: true, checkedInAt: 1699... }
+```
+
+### Announcements & reminders
+
+```ts
+// Send a message to all registered attendees
+await events.sendAnnouncement(event.entityKey, {
+  subject: "Event update",
+  body: "Don't forget — the event starts at 9 AM sharp!",
+});
+
+// Send a reminder to attendees who haven't checked in yet
+await events.sendReminder(event.entityKey, {
+  body: "Event starts in 1 hour. See you there!",
+});
+```
+
+### Analytics
+
+```ts
+const analytics = await events.getAnalytics(event.entityKey);
+// {
+//   totalRegistrations: 180,
+//   approved: 150,
+//   pending: 20,
+//   rejected: 10,
+//   attended: 120,
+//   waitlist: 5,
+//   pageViews: 0,
+//   revenue: 0,
+// }
+```
+
+### Calendars & calendar following
+
+```ts
+// Create a calendar
+const calendar = await events.createCalendar({
+  name: "Web3 Events",
+  description: "Curated web3 and crypto events",
+  isPublic: true,
+});
+
+// Update it
+await events.updateCalendar(calendar.entityKey, {
+  name: "Web3 & Arkiv Events",
+});
+
+// Add an event to the calendar
+await events.addToCalendar(calendar.entityKey, event.entityKey);
+
+// Follow another user's calendar
+await events.followCalendar(calendar.entityKey);
+
+// Unfollow
+await events.unfollowCalendar(calendar.entityKey);
+
+// List events in a calendar
+const calEvents = await events.listCalendarEvents(calendar.entityKey);
+
+// Remove an event from the calendar
+await events.removeFromCalendar(calendar.entityKey, event.entityKey);
+
+// Delete a calendar
+await events.deleteCalendar(calendar.entityKey);
+```
+
+### Notifications
+
+```ts
+// Create a notification for an attendee
+const notif = await events.createNotification({
+  targetUuid: "attendee-uuid",
+  eventKey: event.entityKey,
+  type: "event_reminder",
+  message: "Your event starts in 30 minutes.",
+});
+
+// List unread notifications (recipient side)
+const notifications = await events.listNotifications();
+
+// Mark as read
+await events.markNotificationRead(notif.entityKey);
+
+// Delete a notification
+await events.deleteNotification(notif.entityKey);
+```
+
+### Moderation
+
+```ts
+// Report a user for inappropriate behavior at an event
+await events.reportUser(event.entityKey, {
+  targetUuid: "bad-actor-uuid",
+  reason: "spam",
+  details: "Sent unsolicited messages to other attendees.",
+});
 ```
 
 ---
@@ -704,6 +1151,178 @@ All functions use `globalThis.crypto.subtle` â€” no Node.js built-ins, no p
 | `.editComment(entityKey, content)` | `Promise<SocialComment>`                | Edit an existing comment             |
 | `.deleteComment(entityKey)`        | `Promise<void>`                         | Soft-delete a comment                |
 | `.getComments(entityKey, opts?)`   | `Promise<SocialComment[]>`              | List comments on a post              |
+
+### `EventClient`
+
+#### Events CRUD & discovery
+
+| Method                                    | Returns                | Description                                  |
+| ----------------------------------------- | ---------------------- | -------------------------------------------- |
+| `.createEvent(opts)`                      | `Promise<EventData>`   | Create a new event in `draft` status         |
+| `.getEvent(entityKey)`                    | `Promise<EventData>`   | Fetch a single event                         |
+| `.updateEvent(entityKey, opts)`           | `Promise<EventData>`   | Update event fields                          |
+| `.deleteEvent(entityKey)`                 | `Promise<void>`        | Soft-delete an event                         |
+| `.cancelEvent(entityKey)`                 | `Promise<EventData>`   | Cancel an event                              |
+| `.publishEvent(entityKey)`                | `Promise<EventData>`   | Publish a draft event                        |
+| `.unpublishEvent(entityKey)`              | `Promise<EventData>`   | Revert a published event to draft            |
+| `.duplicateEvent(entityKey, overrides?)`  | `Promise<EventData>`   | Clone an event as a new draft                |
+| `.listEvents(opts?)`                      | `Promise<EventData[]>` | List all events owned by the current user    |
+| `.listPublicEvents(opts?)`                | `Promise<EventData[]>` | List all public events on the network        |
+| `.listUpcomingEvents(opts?)`              | `Promise<EventData[]>` | List upcoming events for the current user    |
+| `.listPastEvents(opts?)`                  | `Promise<EventData[]>` | List past events for the current user        |
+| `.searchEvents(query, opts?)`             | `Promise<EventData[]>` | Full-text search over event titles / tags    |
+| `.listByCity(city, opts?)`                | `Promise<EventData[]>` | Filter public events by city                 |
+| `.listByCategory(category, opts?)`        | `Promise<EventData[]>` | Filter public events by category             |
+| `.listTrending(opts?)`                    | `Promise<EventData[]>` | List trending public events                  |
+| `.listRecommended(opts?)`                 | `Promise<EventData[]>` | List recommended events for the current user |
+| `.uploadEventCover(entityKey, photoPath)` | `Promise<EventData>`   | Upload a cover image                         |
+| `.removeEventCover(entityKey)`            | `Promise<EventData>`   | Remove the cover image                       |
+
+#### Agenda
+
+| Method                                      | Returns              | Description           |
+| ------------------------------------------- | -------------------- | --------------------- |
+| `.addAgendaItem(entityKey, item)`           | `Promise<EventData>` | Add an agenda item    |
+| `.updateAgendaItem(entityKey, id, updates)` | `Promise<EventData>` | Update an agenda item |
+| `.removeAgendaItem(entityKey, id)`          | `Promise<EventData>` | Remove an agenda item |
+
+#### Organizers & roles
+
+| Method                                            | Returns                     | Description                      |
+| ------------------------------------------------- | --------------------------- | -------------------------------- |
+| `.addOrganizer(eventKey, uuid, wallet, role?)`    | `Promise<EventOrganizer>`   | Add a co-organizer               |
+| `.removeOrganizer(eventKey, organizerKey)`        | `Promise<void>`             | Remove a co-organizer            |
+| `.listOrganizers(eventKey)`                       | `Promise<EventOrganizer[]>` | List event organizers            |
+| `.changeOrganizerRole(eventKey, organizerKey, r)` | `Promise<EventOrganizer>`   | Change an organizer's role       |
+| `.assignRole(eventKey, targetUuid, role)`         | `Promise<EventRole>`        | Assign an arbitrary role         |
+| `.removeRole(eventKey, roleKey)`                  | `Promise<void>`             | Remove a role assignment         |
+| `.listRoles(eventKey)`                            | `Promise<EventRole[]>`      | List all role assignments        |
+| `.checkPermission(eventKey, uuid, permission)`    | `Promise<boolean>`          | Check if a user has a permission |
+
+#### Registration / RSVP
+
+| Method                                            | Returns                 | Description                        |
+| ------------------------------------------------- | ----------------------- | ---------------------------------- |
+| `.register(eventKey, answers?)`                   | `Promise<RSVPRecord>`   | Register for an event              |
+| `.cancelRegistration(eventKey)`                   | `Promise<void>`         | Cancel your own registration       |
+| `.approveRegistration(eventKey, rsvpKey)`         | `Promise<RSVPRecord>`   | Approve a pending RSVP (organizer) |
+| `.rejectRegistration(eventKey, rsvpKey)`          | `Promise<RSVPRecord>`   | Reject a pending RSVP (organizer)  |
+| `.changeRegistrationStatus(eventKey, rsvpKey, s)` | `Promise<RSVPRecord>`   | Set an arbitrary RSVP status       |
+| `.markAttendance(eventKey, rsvpKey)`              | `Promise<RSVPRecord>`   | Mark attendance for an RSVP        |
+| `.listRegistrations(eventKey, opts?)`             | `Promise<RSVPRecord[]>` | List registrations (organizer)     |
+| `.listMyRegistrations(opts?)`                     | `Promise<RSVPRecord[]>` | List current user's RSVPs          |
+| `.closeRegistration(eventKey)`                    | `Promise<EventData>`    | Close registration                 |
+| `.reopenRegistration(eventKey)`                   | `Promise<EventData>`    | Reopen registration                |
+| `.enableManualApproval(eventKey)`                 | `Promise<EventData>`    | Enable manual approval gate        |
+| `.disableManualApproval(eventKey)`                | `Promise<EventData>`    | Disable manual approval gate       |
+
+#### Guest list
+
+| Method                                  | Returns                 | Description                    |
+| --------------------------------------- | ----------------------- | ------------------------------ |
+| `.showAttendeesList(eventKey)`          | `Promise<EventData>`    | Make the attendees list public |
+| `.hideAttendeesList(eventKey)`          | `Promise<EventData>`    | Hide the attendees list        |
+| `.listAttendees(eventKey, opts?)`       | `Promise<RSVPRecord[]>` | List all attendees             |
+| `.searchAttendees(eventKey, query)`     | `Promise<RSVPRecord[]>` | Search attendees by name/UUID  |
+| `.removeAttendee(eventKey, targetUuid)` | `Promise<void>`         | Remove an attendee             |
+
+#### Registration questions
+
+| Method                                     | Returns                    | Description              |
+| ------------------------------------------ | -------------------------- | ------------------------ |
+| `.createQuestion(eventKey, opts)`          | `Promise<EventQuestion>`   | Create a custom question |
+| `.updateQuestion(questionKey, updates)`    | `Promise<EventQuestion>`   | Update a question        |
+| `.deleteQuestion(questionKey)`             | `Promise<void>`            | Delete a question        |
+| `.listQuestions(eventKey)`                 | `Promise<EventQuestion[]>` | List all questions       |
+| `.reorderQuestions(eventKey, orderedKeys)` | `Promise<EventQuestion[]>` | Reorder questions        |
+
+#### Ticket types & tickets
+
+| Method                                      | Returns                          | Description                         |
+| ------------------------------------------- | -------------------------------- | ----------------------------------- |
+| `.createTicketType(eventKey, opts)`         | `Promise<TicketType>`            | Create a ticket type (free or paid) |
+| `.updateTicketType(ticketTypeKey, updates)` | `Promise<TicketType>`            | Update a ticket type                |
+| `.deleteTicketType(ticketTypeKey)`          | `Promise<void>`                  | Delete a ticket type                |
+| `.listTicketTypes(eventKey)`                | `Promise<TicketType[]>`          | List all ticket types               |
+| `.purchaseTicket(eventKey, ticketTypeKey)`  | `Promise<TicketRecord>`          | Purchase / claim a ticket           |
+| `.cancelTicket(ticketKey)`                  | `Promise<TicketRecord>`          | Cancel a ticket                     |
+| `.transferTicket(ticketKey, recipientUuid)` | `Promise<TicketRecord>`          | Transfer a ticket to another user   |
+| `.generateTicketQR(ticketKey)`              | `Promise<{ entityKey, qrData }>` | Generate `aside://v1/ticket` QR     |
+| `.validateTicketQR(qrData)`                 | `Promise<TicketRecord \| null>`  | Validate and return ticket entity   |
+| `.listMyTickets(opts?)`                     | `Promise<TicketRecord[]>`        | List current user's tickets         |
+| `.listEventTickets(eventKey, opts?)`        | `Promise<TicketRecord[]>`        | List all tickets for an event       |
+
+#### Discount codes
+
+| Method                                  | Returns                                     | Description             |
+| --------------------------------------- | ------------------------------------------- | ----------------------- |
+| `.createDiscountCode(eventKey, opts)`   | `Promise<DiscountCode>`                     | Create a discount code  |
+| `.validateDiscountCode(eventKey, code)` | `Promise<{ valid, discountPercent, code }>` | Check a discount code   |
+| `.deleteDiscountCode(discountKey)`      | `Promise<void>`                             | Delete a discount code  |
+| `.listDiscountCodes(eventKey)`          | `Promise<DiscountCode[]>`                   | List all discount codes |
+
+#### Waitlist
+
+| Method                           | Returns                    | Description                      |
+| -------------------------------- | -------------------------- | -------------------------------- |
+| `.joinWaitlist(eventKey)`        | `Promise<WaitlistEntry>`   | Join the waitlist                |
+| `.leaveWaitlist(eventKey)`       | `Promise<void>`            | Leave the waitlist               |
+| `.listWaitlist(eventKey)`        | `Promise<WaitlistEntry[]>` | List all waitlist entries        |
+| `.promoteFromWaitlist(eventKey)` | `Promise<RSVPRecord>`      | Promote the first waitlist entry |
+
+#### Invitations
+
+| Method                                   | Returns                  | Description                    |
+| ---------------------------------------- | ------------------------ | ------------------------------ |
+| `.inviteByEmail(eventKey, email, opts?)` | `Promise<EventInvite>`   | Invite one person by e-mail    |
+| `.inviteList(eventKey, invitees)`        | `Promise<EventInvite[]>` | Bulk invite                    |
+| `.resendInvite(inviteKey)`               | `Promise<EventInvite>`   | Resend an invitation           |
+| `.cancelInvite(inviteKey)`               | `Promise<void>`          | Cancel an invitation           |
+| `.listInvites(eventKey)`                 | `Promise<EventInvite[]>` | List all invitations           |
+| `.acceptInvite(inviteKey)`               | `Promise<EventInvite>`   | Accept an invitation (invitee) |
+| `.rejectInvite(inviteKey)`               | `Promise<EventInvite>`   | Reject an invitation (invitee) |
+
+#### Check-in
+
+| Method                                    | Returns                                | Description                    |
+| ----------------------------------------- | -------------------------------------- | ------------------------------ |
+| `.checkinByQR(eventKey, qrData)`          | `Promise<CheckinRecord>`               | Check in by scanning ticket QR |
+| `.checkinByEmail(eventKey, email)`        | `Promise<CheckinRecord>`               | Check in by email lookup       |
+| `.checkinManual(eventKey, targetUuid)`    | `Promise<CheckinRecord>`               | Manual check-in by UUID        |
+| `.undoCheckin(eventKey, checkinKey)`      | `Promise<void>`                        | Undo a check-in                |
+| `.listCheckins(eventKey, opts?)`          | `Promise<CheckinRecord[]>`             | List all check-ins             |
+| `.getCheckinStatus(eventKey, targetUuid)` | `Promise<{ checkedIn, checkedInAt? }>` | Get check-in status            |
+
+#### Communication & analytics
+
+| Method                              | Returns                   | Description                                 |
+| ----------------------------------- | ------------------------- | ------------------------------------------- |
+| `.sendAnnouncement(eventKey, opts)` | `Promise<void>`           | Send a message to all registered attendees  |
+| `.sendReminder(eventKey, opts)`     | `Promise<void>`           | Send a reminder to non-checked-in attendees |
+| `.getAnalytics(eventKey)`           | `Promise<EventAnalytics>` | Get registration & attendance analytics     |
+
+#### Calendars
+
+| Method                                       | Returns                       | Description                     |
+| -------------------------------------------- | ----------------------------- | ------------------------------- |
+| `.createCalendar(opts)`                      | `Promise<EventCalendar>`      | Create a new calendar           |
+| `.updateCalendar(calendarKey, updates)`      | `Promise<EventCalendar>`      | Update a calendar               |
+| `.deleteCalendar(calendarKey)`               | `Promise<void>`               | Delete a calendar               |
+| `.addToCalendar(calendarKey, eventKey)`      | `Promise<EventCalendarEntry>` | Add an event to a calendar      |
+| `.removeFromCalendar(calendarKey, eventKey)` | `Promise<void>`               | Remove an event from a calendar |
+| `.followCalendar(calendarKey)`               | `Promise<void>`               | Follow another user's calendar  |
+| `.unfollowCalendar(calendarKey)`             | `Promise<void>`               | Unfollow a calendar             |
+| `.listCalendarEvents(calendarKey)`           | `Promise<EventData[]>`        | List events in a calendar       |
+
+#### Notifications & moderation
+
+| Method                            | Returns                        | Description                       |
+| --------------------------------- | ------------------------------ | --------------------------------- |
+| `.createNotification(opts)`       | `Promise<EventNotification>`   | Create an in-app notification     |
+| `.listNotifications(opts?)`       | `Promise<EventNotification[]>` | List current user's notifications |
+| `.markNotificationRead(notifKey)` | `Promise<EventNotification>`   | Mark a notification as read       |
+| `.deleteNotification(notifKey)`   | `Promise<void>`                | Delete a notification             |
+| `.reportUser(eventKey, opts)`     | `Promise<void>`                | Report a user for moderation      |
 
 ### `AccessTokenManager`
 

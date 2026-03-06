@@ -533,4 +533,466 @@ ok("derived wallet address", newAccount.address)
 // Generate a new UUID for a fresh user (stable across chains)
 ok("new user uuid", crypto.randomUUID())
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 16. EVENTS — create / publish / update / cancel
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("16. Events — create / publish / update / cancel")
+
+const events = client.events()
+
+// Create a new event in draft status
+const now = Date.now()
+const event = await events.createEvent({
+  title: "Arkiv Hackathon 2025",
+  description: "A 48-hour hackathon on the Arkiv network.",
+  startsAt: now + 7 * 24 * 60 * 60 * 1000,    // 1 week from now
+  endsAt: now + 9 * 24 * 60 * 60 * 1000,    // 2 days after start
+  timezone: "UTC",
+  modality: "hybrid",
+  visibility: "public",
+  capacity: 200,
+  location: { name: "Techspace", city: "Berlin", country: "DE", url: "https://meet.example.com" },
+  tags: ["hackathon", "web3", "arkiv"],
+  categories: ["technology"],
+  requiresApproval: false,
+})
+ok("createEvent (draft)", { entityKey: event.entityKey, title: event.title, status: event.status })
+
+// Publish it
+const published = await events.publishEvent(event.entityKey)
+ok("publishEvent", { status: published.status, visibility: published.visibility })
+
+// Update some fields
+const eventUpdated = await events.updateEvent(event.entityKey, {
+  description: "A 48-hour hackathon — prizes worth $10,000.",
+  capacity: 250,
+})
+ok("updateEvent", { description: eventUpdated.description, capacity: eventUpdated.capacity })
+
+// Duplicate it as a new draft
+const copy = await events.duplicateEvent(event.entityKey, { title: "Arkiv Hackathon — Spring Edition" })
+ok("duplicateEvent", { entityKey: copy.entityKey, title: copy.title, status: copy.status })
+
+// Cancel the copy
+const evCancelled = await events.cancelEvent(copy.entityKey)
+ok("cancelEvent", { status: evCancelled.status })
+
+// List organizer's own events
+const myEvents = await events.listEvents()
+ok("listEvents (my own)", myEvents.map(e => e.title))
+
+// Public discovery
+const upcoming = await events.listUpcomingEvents()
+ok("listUpcomingEvents count", upcoming.length)
+
+const byCity = await events.listByCity("Berlin")
+ok("listByCity Berlin", byCity.map(e => e.title))
+
+const search = await events.searchEvents("hackathon")
+ok("searchEvents 'hackathon'", search.map(e => e.title))
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 17. EVENTS — agenda items
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("17. Events — agenda items")
+
+const evKey = event.entityKey
+
+const withAgenda = await events.addAgendaItem(evKey, {
+  title: "Opening Keynote",
+  description: "Welcome to Arkiv Hackathon 2025!",
+  startsAt: now + 7 * 24 * 60 * 60 * 1000,
+  endsAt: now + 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+})
+ok("addAgendaItem", withAgenda.agenda?.map(a => a.title))
+
+const item = withAgenda.agenda?.[0]
+if (item) {
+  const agendaUpdated = await events.updateAgendaItem(evKey, item.id, { title: "Opening Keynote (updated)" })
+  ok("updateAgendaItem", agendaUpdated.agenda?.map(a => a.title))
+
+  const removed = await events.removeAgendaItem(evKey, item.id)
+  ok("removeAgendaItem — agenda length after", removed.agenda?.length ?? 0)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 18. EVENTS — organizers & roles
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("18. Events — organizers & roles")
+
+// Add a co-host (simulated; real UUID + wallet would come from their profile)
+const coHostWallet = "0x000000000000000000000000000000000000dead"
+const organizer = await events.addOrganizer(evKey, "user-cohost-uuid", coHostWallet, "host")
+ok("addOrganizer", { userUuid: organizer.userUuid, role: organizer.role })
+
+const organizers = await events.listOrganizers(evKey)
+ok("listOrganizers count", organizers.length)
+
+const changed = await events.changeOrganizerRole(evKey, "user-cohost-uuid", "admin")
+ok("changeOrganizerRole", { userUuid: changed.userUuid, newRole: changed.role })
+
+await events.removeOrganizer(evKey, "user-cohost-uuid")
+ok("removeOrganizer")
+
+// Assign a stand-alone role (check-in manager at the door)
+const role = await events.assignRole(evKey, "user-door-uuid", "checkin_manager")
+ok("assignRole", { userUuid: role.userUuid, role: role.role })
+
+const roles = await events.listRoles(evKey)
+ok("listRoles count", roles.length)
+
+const hasPerm = await events.checkPermission(evKey, "user-door-uuid", "checkin_manager")
+ok("checkPermission (checkin_manager)", hasPerm)
+
+const lacksAdminPerm = await events.checkPermission(evKey, "user-door-uuid", "admin")
+ok("checkPermission (admin — should be false)", lacksAdminPerm)
+
+await events.removeRole(evKey, "user-door-uuid")
+ok("removeRole")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 19. EVENTS — registration / RSVP
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("19. Events — registration / RSVP")
+
+// Current user registers
+const rsvp = await events.register(evKey)
+ok("register", { entityKey: rsvp.entityKey, status: rsvp.status })
+
+// Registrations list (organizer view)
+const regs = await events.listRegistrations(evKey)
+ok("listRegistrations count", regs.length)
+
+// My own registrations (attendee view)
+const myRsvps = await events.listMyRegistrations()
+ok("listMyRegistrations count", myRsvps.length)
+
+// Approve / reject (simulate with a dummy UUID that doesn't actually exist here)
+// In production, attendeeUuid comes from another registered user.
+// We approve the current user's own RSVP for demo purposes:
+const approved = await events.approveRegistration(evKey, client.uuid)
+ok("approveRegistration", approved.status)
+
+// Attendee list (approved only)
+const attendees = await events.listAttendees(evKey)
+ok("listAttendees count", attendees.length)
+
+// Mark attendance directly
+const attended = await events.markAttendance(evKey, client.uuid)
+ok("markAttendance", { checkedIn: attended.checkedIn })
+
+// Close / reopen registration
+const closed = await events.closeRegistration(evKey)
+ok("closeRegistration", { registrationOpen: closed.registrationOpen })
+
+const reopened = await events.reopenRegistration(evKey)
+ok("reopenRegistration", { registrationOpen: reopened.registrationOpen })
+
+// Enable manual approval for new registrations
+const withApproval = await events.enableManualApproval(evKey)
+ok("enableManualApproval", { requiresApproval: withApproval.requiresApproval })
+
+await events.disableManualApproval(evKey)
+ok("disableManualApproval")
+
+// Cancel own registration
+await events.cancelRegistration(evKey)
+ok("cancelRegistration")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 20. EVENTS — custom registration questions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("20. Events — custom registration questions")
+
+const q1 = await events.createQuestion(evKey, {
+  label: "What is your experience with Arkiv?",
+  type: "multiple_choice",
+  required: true,
+  options: ["None", "Beginner", "Intermediate", "Expert"],
+})
+ok("createQuestion", { label: q1.label, type: q1.type })
+
+const q2 = await events.createQuestion(evKey, {
+  label: "Your wallet address",
+  type: "wallet",
+  required: true,
+})
+ok("createQuestion (wallet)", { label: q2.label, type: q2.type })
+
+const questions = await events.listQuestions(evKey)
+ok("listQuestions count", questions.length)
+
+const updatedQ = await events.updateQuestion(q1.entityKey, { label: "Arkiv experience level?" })
+ok("updateQuestion", updatedQ.label)
+
+// Reorder — put q2 first
+await events.reorderQuestions(evKey, [q2.entityKey, q1.entityKey])
+ok("reorderQuestions")
+
+await events.deleteQuestion(q1.entityKey)
+ok("deleteQuestion")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 21. EVENTS — ticket types & tickets
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("21. Events — ticket types & tickets")
+
+// Create a free tier
+const freeTier = await events.createTicketType(evKey, {
+  name: "Free",
+  price: 0,
+  capacity: 100,
+})
+ok("createTicketType (free)", { name: freeTier.name, price: freeTier.price })
+
+// Create a paid tier with early-bird pricing
+const paidTier = await events.createTicketType(evKey, {
+  name: "Pro",
+  description: "Full access + swag bag",
+  price: 100,
+  currency: "USD",
+  capacity: 50,
+  earlyBirdPrice: 70,
+  earlyBirdEndsAt: now + 3 * 24 * 60 * 60 * 1000,
+})
+ok("createTicketType (paid)", { name: paidTier.name, earlyBirdPrice: paidTier.earlyBirdPrice })
+
+const ticketTypes = await events.listTicketTypes(evKey)
+ok("listTicketTypes count", ticketTypes.length)
+
+// Update ticket type
+const updatedTier = await events.updateTicketType(paidTier.entityKey, { capacity: 75 })
+ok("updateTicketType capacity", updatedTier.capacity)
+
+// Purchase a free ticket
+const ticket = await events.purchaseTicket(freeTier.entityKey)
+ok("purchaseTicket", { entityKey: ticket.entityKey, status: ticket.status })
+
+// Generate QR for the ticket
+const qrPayload = await events.generateTicketQR(ticket.entityKey)
+ok("generateTicketQR (first 40 chars)", qrPayload.slice(0, 40) + "…")
+
+// Validate the QR payload
+const validated = await events.validateTicketQR(qrPayload)
+ok("validateTicketQR", { entityKey: validated?.entityKey, status: validated?.status })
+
+// List my tickets
+const myTickets = await events.listMyTickets()
+ok("listMyTickets count", myTickets.length)
+
+// Discount code
+const discount = await events.createDiscountCode(evKey, {
+  code: "EARLY10",
+  type: "percent",
+  value: 10,
+  maxUses: 50,
+  expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+})
+ok("createDiscountCode", { code: discount.code, type: discount.type, value: discount.value })
+
+const validDiscount = await events.validateDiscountCode(evKey, "EARLY10")
+ok("validateDiscountCode", validDiscount ? { code: validDiscount.code, value: validDiscount.value } : null)
+
+const discounts = await events.listDiscountCodes(evKey)
+ok("listDiscountCodes count", discounts.length)
+
+await events.deleteDiscountCode(discount.entityKey)
+ok("deleteDiscountCode")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 22. EVENTS — waitlist
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("22. Events — waitlist")
+
+// Make a capacity-1 micro-event
+const miniEvent = await events.createEvent({
+  title: "Exclusive Demo",
+  startsAt: now + 14 * 24 * 60 * 60 * 1000,
+  endsAt: now + 14 * 24 * 60 * 60 * 1000 + 3600_000,
+  capacity: 1,
+})
+await events.publishEvent(miniEvent.entityKey)
+
+// Register fills the one slot
+await events.register(miniEvent.entityKey)
+
+// Join waitlist (separate method — also auto-triggered inside register() when full)
+const waitEntry = await events.joinWaitlist(miniEvent.entityKey)
+ok("joinWaitlist", { position: waitEntry.position, status: waitEntry.status })
+
+const waitlist = await events.listWaitlist(miniEvent.entityKey)
+ok("listWaitlist count", waitlist.length)
+
+// Promote from waitlist (organizer promotes the first person)
+const promoted = await events.promoteFromWaitlist(miniEvent.entityKey, client.uuid)
+ok("promoteFromWaitlist", { status: promoted.status })
+
+// Leave the waitlist
+await events.joinWaitlist(miniEvent.entityKey)  // re-join for demo
+await events.leaveWaitlist(miniEvent.entityKey)
+ok("leaveWaitlist")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 23. EVENTS — invitations
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("23. Events — invitations")
+
+const invite = await events.inviteByEmail(evKey, "alice@example.com")
+ok("inviteByEmail", { entityKey: invite.entityKey, email: invite.email, status: invite.status })
+
+const bulkInvites = await events.inviteList(evKey, ["bob@example.com", "carol@example.com"])
+ok("inviteList sent count", bulkInvites.length)
+
+const allInvites = await events.listInvites(evKey)
+ok("listInvites count", allInvites.length)
+
+// Resend
+await events.resendInvite(invite.entityKey)
+ok("resendInvite")
+
+// Cancel one invite
+await events.cancelInvite(invite.entityKey)
+ok("cancelInvite", invite.entityKey.slice(0, 10) + "…")
+
+// Accept / reject (current user accepts bulkInvites[0])
+const accepted = await events.acceptInvite(bulkInvites[0].entityKey)
+ok("acceptInvite", accepted.status)
+
+const rejected = await events.rejectInvite(bulkInvites[1].entityKey)
+ok("rejectInvite", rejected.status)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 24. EVENTS — check-in
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("24. Events — check-in")
+
+// Manual check-in (organizer opens laptop at the door)
+const checkin = await events.checkinManual(evKey, client.uuid)
+ok("checkinManual", { method: checkin.method, attendeeUuid: checkin.attendeeUuid })
+
+// QR check-in flow: generate → scan → validate
+await events.cancelTicket(ticket.entityKey)      // reset for demo
+const freshTicket = await events.purchaseTicket(freeTier.entityKey)
+const freshQR = await events.generateTicketQR(freshTicket.entityKey)
+const checkinByQR = await events.checkinByQR(freshQR)
+ok("checkinByQR", { method: checkinByQR.method })
+
+// Check-in status
+const status = await events.getCheckinStatus(evKey, client.uuid)
+ok("getCheckinStatus", { checkedInAt: status?.checkedInAt ? "set" : "null", method: status?.method })
+
+// List all check-ins
+const checkins = await events.listCheckins(evKey)
+ok("listCheckins count", checkins.length)
+
+// Undo a check-in
+await events.undoCheckin(checkin.entityKey)
+ok("undoCheckin")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 25. EVENTS — communication & announcements
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("25. Events — communication & announcements")
+
+await events.sendAnnouncement(evKey, "🚀 The schedule is now live — check the agenda!")
+ok("sendAnnouncement")
+
+await events.sendReminder(evKey)
+ok("sendReminder (auto message)")
+
+await events.sendReminder(evKey, "Doors open at 09:00 UTC tomorrow!")
+ok("sendReminder (custom message)")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 26. EVENTS — analytics
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("26. Events — analytics")
+
+const analytics = await events.getAnalytics(evKey)
+ok("getAnalytics", {
+  registrations: analytics.registrations,
+  approved: analytics.approved,
+  checkins: analytics.checkins,
+  conversionRate: analytics.conversionRate + "%",
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 27. EVENTS — calendars
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("27. Events — calendars")
+
+const calendar = await events.createCalendar({ name: "My Web3 Events", visibility: "public" })
+ok("createCalendar", { entityKey: calendar.entityKey, name: calendar.name })
+
+const updatedCal = await events.updateCalendar(calendar.entityKey, { name: "Web3 & Arkiv Events" })
+ok("updateCalendar", updatedCal.name)
+
+// Add events to the calendar
+const calEntry = await events.addToCalendar(calendar.entityKey, evKey)
+ok("addToCalendar", { calendarEntityKey: calEntry.calendarEntityKey })
+
+const calEvents = await events.listCalendarEvents(calendar.entityKey)
+ok("listCalendarEvents count", calEvents.length)
+
+// Follow / unfollow a calendar
+await events.followCalendar(calendar.entityKey)
+ok("followCalendar")
+
+await events.unfollowCalendar(calendar.entityKey)
+ok("unfollowCalendar")
+
+// Remove event from calendar
+await events.removeFromCalendar(calendar.entityKey, evKey)
+ok("removeFromCalendar")
+
+await events.deleteCalendar(calendar.entityKey)
+ok("deleteCalendar (soft)")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 28. EVENTS — notifications & moderation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+section("28. Events — notifications & moderation")
+
+// Create a notification
+const notification = await events.createNotification({
+  toUuid: client.uuid,
+  fromUuid: client.uuid,
+  eventEntityKey: evKey,
+  type: "announcement",
+  message: "Event starts in 24 hours!",
+})
+ok("createNotification", { type: notification.type, read: notification.read })
+
+const notes = await events.listNotifications()
+ok("listNotifications count", notes.length)
+
+const unread = await events.listNotifications({ unreadOnly: true })
+ok("listNotifications (unread)", unread.length)
+
+await events.markNotificationRead(notification.entityKey)
+ok("markNotificationRead")
+
+await events.deleteNotification(notification.entityKey)
+ok("deleteNotification")
+
+// Report a user
+await events.reportUser("user-spammer-uuid", "Sending unsolicited DMs", evKey)
+ok("reportUser (event-scoped)")
+
+await events.reportUser("user-abuser-uuid", "Inappropriate content")
+ok("reportUser (platform-level)")
+
 console.log("\n✅  All examples completed.\n")

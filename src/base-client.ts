@@ -39,6 +39,7 @@ import { AccessTokenManager } from './access-token.js'
 import { ProfileWatcher } from './watcher.js'
 import { SocialClient } from './social.js'
 import { FeedClient } from './feed.js'
+import { EventClient } from './event.js'
 import type {
   BaseClientOptions,
   BaseProfileData,
@@ -348,6 +349,21 @@ export class BaseClient {
    */
   feed(): FeedClient {
     return new FeedClient(this.cdn, this.uuid, this.wallet)
+  }
+
+  /**
+   * Returns an {@link EventClient} for creating and managing events, RSVPs, tickets, and more.
+   *
+   * @example
+   * ```ts
+   * const events = client.events()
+   * const ev = await events.createEvent({ title: 'Hackathon', startsAt, endsAt })
+   * await events.publishEvent(ev.entityKey)
+   * await events.register(ev.entityKey)
+   * ```
+   */
+  events(): EventClient {
+    return new EventClient(this.cdn, this.uuid, this.wallet)
   }
 
   // ─── Access tokens ────────────────────────────────────────────────────────
