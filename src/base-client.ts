@@ -109,11 +109,19 @@ export class BaseClient {
 
     const profile = entity.toJson() as BaseProfileData
 
+    // Integrity check — the payload's wallet and uuid must match the client's
+    // identity.  A mismatch means the entity was tampered with or belongs to a
+    // different owner and must be rejected.
+    if (profile.uuid !== this.uuid || profile.wallet.toLowerCase() !== this.wallet.toLowerCase()) {
+      throw new Error(
+        `ASide: data integrity check failed — entity payload (uuid="${profile.uuid}", wallet="${profile.wallet}") does not match client identity (uuid="${this.uuid}", wallet="${this.wallet}")`,
+      )
+    }
+
+    // Sync mutable fields from chain. uuid and wallet are immutable — never re-assigned.
     this.bio = profile.bio
     this.displayName = profile.displayName
     this.photo = profile.photo
-    this.uuid = profile.uuid
-    this.wallet = profile.wallet
 
     return { entityKey: entity.key, profile }
   }
@@ -211,6 +219,11 @@ export class BaseClient {
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
     })
+
+    // Keep in-memory state coherent with what was just written on-chain.
+    this.photo = updated.photo
+    this.displayName = updated.displayName
+    this.bio = updated.bio
 
     return { entityKey: existing.entityKey, profile: updated }
   }
