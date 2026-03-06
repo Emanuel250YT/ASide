@@ -1,6 +1,6 @@
 ﻿# ASide
 
-**ASide** is a complete TypeScript development kit for building any kind of platform on top of [Arkiv](https://arkiv.network/) and [ArkaCDN](https://arkiv.network/) — from social networks and event platforms to messaging apps and custom communities. It integrates both services into a single, cohesive API so you can ship fast without gluing together multiple SDKs.
+**ASide** is a complete TypeScript development kit for building any kind of platform on top of [Arkiv](https://arkiv.network/) and [ArkaCDN](https://github.com/Emanuel250YT/arka-cdn) — from social networks and event platforms to messaging apps and custom communities. It integrates both services into a single, cohesive API so you can ship fast without gluing together multiple SDKs.
 
 Out of the box you get: decentralized user profiles, a full social graph (follows, friends, blocks), a content feed (posts, reactions, comments), a full event platform (creation, ticketing, RSVP, check-in, calendars), QR-based friend requests, and ECDH-secured access tokens — all backed by a public, tamper-proof ledger.
 
