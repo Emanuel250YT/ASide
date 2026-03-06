@@ -1,6 +1,6 @@
 {
   "name": "aside",
-  "version": "0.1.1",
+  "version": "1.0.1",
   "description": "Temporary user profiles linked to blockchain wallets, with cross-chain replication and per-app extensions - powered by ArkaCDN.",
   "license": "MIT",
   "author": "",
