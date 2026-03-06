@@ -5,7 +5,7 @@
 > **ArkaCDN is bundled.** You only need one install:
 >
 > ```bash
-> npm install aside
+> npm install @emanuel250dev/aside
 > ```
 >
 > Everything in `arka-cdn` is re-exported by `aside` itself, so you never need to install `arka-cdn` separately.
