@@ -25,6 +25,9 @@
  * @module
  */
 
+// ─── ArkaCDN (bundled — no separate install needed) ──────────────────────────
+export { ArkaCDN, createArkaCDN, ArkaCDNError, ArkaCDNDownloadError, ArkaCDNUploadError, ArkaCDNEntityError } from 'arka-cdn'
+
 // ─── Core classes ─────────────────────────────────────────────────────────────
 export { BaseClient } from './base-client.js'
 export { ExtensionClient } from './extension.js'
