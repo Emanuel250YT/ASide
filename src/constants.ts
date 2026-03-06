@@ -1,12 +1,12 @@
 /** Shared attribute keys used for all ASide entities. */
-export const ATTR_TYPE = 'aside.type'
-export const ATTR_UUID = 'aside.uuid'
-export const ATTR_WALLET = 'aside.wallet'
-export const ATTR_NAMESPACE = 'aside.namespace'
+export const ATTR_TYPE = 'aside_type'
+export const ATTR_UUID = 'aside_uuid'
+export const ATTR_WALLET = 'aside_wallet'
+export const ATTR_NAMESPACE = 'aside_namespace'
 
 /** Attribute keys for social graph entities. */
-export const ATTR_TARGET_UUID = 'aside.social.target'      // followee / blocked / friend
-export const ATTR_TARGET_KEY = 'aside.social.target_key'  // post/comment entity key
+export const ATTR_TARGET_UUID = 'aside_social_target'      // followee / blocked / friend
+export const ATTR_TARGET_KEY = 'aside_social_target_key'  // post/comment entity key
 
 /** Entity type discriminators stored in `aside.type`. */
 export const PROFILE_TYPE = 'profile'

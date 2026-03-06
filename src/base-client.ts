@@ -49,11 +49,11 @@ import type {
 } from './types.js'
 
 export class BaseClient {
-  readonly uuid: string
-  readonly wallet: string
-  readonly photo: string
-  readonly displayName: string | undefined
-  readonly bio: string | undefined
+  uuid: string
+  wallet: string
+  photo: string
+  displayName: string | undefined
+  bio: string | undefined
 
   protected _cdn: ArkaCDN | undefined
 
@@ -102,9 +102,19 @@ export class BaseClient {
       .fetch()
 
     const entity = result.entities[0]
+
+
     if (!entity) return null
 
+
     const profile = entity.toJson() as BaseProfileData
+
+    this.bio = profile.bio
+    this.displayName = profile.displayName
+    this.photo = profile.photo
+    this.uuid = profile.uuid
+    this.wallet = profile.wallet
+
     return { entityKey: entity.key, profile }
   }
 
@@ -161,6 +171,7 @@ export class BaseClient {
    */
   async getOrCreate(): Promise<BaseProfileResult> {
     const existing = await this.findProfile(this.cdn)
+
     if (existing) return existing
     return this.createProfileOn(this.cdn)
   }

@@ -25,8 +25,14 @@
  * @module
  */
 
-// ─── ArkaCDN (bundled — no separate install needed) ──────────────────────────
-export { ArkaCDN, createArkaCDN, ArkaCDNError, ArkaCDNDownloadError, ArkaCDNUploadError, ArkaCDNEntityError } from 'arka-cdn'
+// ─── ArkaCDN (re-exported — no separate install needed) ──────────────────────
+export * from 'arka-cdn'
+
+// ─── Arkiv Network SDK utilities ─────────────────────────────────────────────
+export { chainFromName } from '@arkiv-network/sdk'
+
+// ─── Viem account utilities ───────────────────────────────────────────────────
+export { privateKeyToAccount, generatePrivateKey } from 'viem/accounts'
 
 // ─── Core classes ─────────────────────────────────────────────────────────────
 export { BaseClient } from './base-client.js'
