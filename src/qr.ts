@@ -91,7 +91,7 @@ export function encodeProfileLink(
     uuid: data.uuid,
     wallet: data.wallet,
     ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
-    ...(data.photo       !== undefined ? { photo:       data.photo       } : {}),
+    ...(data.photo !== undefined ? { photo: data.photo } : {}),
   }
   return `${SCHEME}/profile?${toBase64url(payload)}`
 }
@@ -139,13 +139,13 @@ export function encodeFriendRequest(
   const payload: FriendRequestQRData = {
     version: 1,
     type: 'friend_request',
-    fromUuid:    data.fromUuid,
-    fromWallet:  data.fromWallet,
-    expiresAt:   Date.now() + ttl,
-    nonce:       randomNonce(),
+    fromUuid: data.fromUuid,
+    fromWallet: data.fromWallet,
+    expiresAt: Date.now() + ttl,
+    nonce: randomNonce(),
     ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
-    ...(options.message  !== undefined ? { message:     options.message  } : {}),
-    ...(data.message     !== undefined ? { message:     data.message     } : {}),
+    ...(options.message !== undefined ? { message: options.message } : {}),
+    ...(data.message !== undefined ? { message: data.message } : {}),
   }
   return `${SCHEME}/friend_request?${toBase64url(payload)}`
 }
@@ -213,7 +213,7 @@ export function parseAsideUri(uri: string): { type: string; payload: unknown } |
   const qIdx = withoutScheme.indexOf('?')
   if (qIdx === -1) return null
   const type = withoutScheme.slice(0, qIdx)
-  const b64  = withoutScheme.slice(qIdx + 1)
+  const b64 = withoutScheme.slice(qIdx + 1)
   const payload = fromBase64url(b64)
   if (payload === null) return null
   return { type, payload }

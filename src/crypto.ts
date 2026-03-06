@@ -302,11 +302,11 @@ export async function ecdhDeriveKeys(
   )
   const shared = new Uint8Array(sharedBits)
   const [encBytes, sessionBytes] = await Promise.all([
-    hkdf(shared, 'aside-token-enc',     32),
+    hkdf(shared, 'aside-token-enc', 32),
     hkdf(shared, 'aside-token-session', 32),
   ])
   return {
-    encKey:     bytesToHex(encBytes),
+    encKey: bytesToHex(encBytes),
     sessionKey: bytesToHex(sessionBytes),
   }
 }

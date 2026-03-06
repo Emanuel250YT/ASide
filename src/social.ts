@@ -39,7 +39,7 @@ export class SocialClient {
     private readonly cdn: ArkaCDN,
     private readonly uuid: string,
     private readonly wallet: string,
-  ) {}
+  ) { }
 
   // ─── Follow / Unfollow ────────────────────────────────────────────────────
 
@@ -62,8 +62,8 @@ export class SocialClient {
         payload: jsonToPayload(updated),
         contentType: 'application/json',
         attributes: [
-          { key: ATTR_TYPE,        value: SOCIAL_FOLLOW_TYPE },
-          { key: ATTR_UUID,        value: existing.followerUuid },
+          { key: ATTR_TYPE, value: SOCIAL_FOLLOW_TYPE },
+          { key: ATTR_UUID, value: existing.followerUuid },
           { key: ATTR_TARGET_UUID, value: existing.followeeUuid },
         ],
         expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -81,8 +81,8 @@ export class SocialClient {
       payload: jsonToPayload(follow),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_FOLLOW_TYPE },
-        { key: ATTR_UUID,        value: this.uuid },
+        { key: ATTR_TYPE, value: SOCIAL_FOLLOW_TYPE },
+        { key: ATTR_UUID, value: this.uuid },
         { key: ATTR_TARGET_UUID, value: targetUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -102,8 +102,8 @@ export class SocialClient {
       payload: jsonToPayload(updated),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_FOLLOW_TYPE },
-        { key: ATTR_UUID,        value: existing.followerUuid },
+        { key: ATTR_TYPE, value: SOCIAL_FOLLOW_TYPE },
+        { key: ATTR_UUID, value: existing.followerUuid },
         { key: ATTR_TARGET_UUID, value: existing.followeeUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -181,8 +181,8 @@ export class SocialClient {
       payload: jsonToPayload(request),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_FRIEND_REQUEST_TYPE },
-        { key: ATTR_UUID,        value: this.uuid },
+        { key: ATTR_TYPE, value: SOCIAL_FRIEND_REQUEST_TYPE },
+        { key: ATTR_UUID, value: this.uuid },
         { key: ATTR_TARGET_UUID, value: targetUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -214,8 +214,8 @@ export class SocialClient {
       payload: jsonToPayload(updated),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_FRIEND_REQUEST_TYPE },
-        { key: ATTR_UUID,        value: req.fromUuid },
+        { key: ATTR_TYPE, value: SOCIAL_FRIEND_REQUEST_TYPE },
+        { key: ATTR_UUID, value: req.fromUuid },
         { key: ATTR_TARGET_UUID, value: req.toUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -266,8 +266,8 @@ export class SocialClient {
       payload: jsonToPayload(updated),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_FRIEND_REQUEST_TYPE },
-        { key: ATTR_UUID,        value: req.fromUuid },
+        { key: ATTR_TYPE, value: SOCIAL_FRIEND_REQUEST_TYPE },
+        { key: ATTR_UUID, value: req.fromUuid },
         { key: ATTR_TARGET_UUID, value: req.toUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -351,8 +351,8 @@ export class SocialClient {
         payload: jsonToPayload(updated),
         contentType: 'application/json',
         attributes: [
-          { key: ATTR_TYPE,        value: SOCIAL_BLOCK_TYPE },
-          { key: ATTR_UUID,        value: existing.byUuid },
+          { key: ATTR_TYPE, value: SOCIAL_BLOCK_TYPE },
+          { key: ATTR_UUID, value: existing.byUuid },
           { key: ATTR_TARGET_UUID, value: existing.blockedUuid },
         ],
         expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -364,8 +364,8 @@ export class SocialClient {
       payload: jsonToPayload(blockData),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_BLOCK_TYPE },
-        { key: ATTR_UUID,        value: this.uuid },
+        { key: ATTR_TYPE, value: SOCIAL_BLOCK_TYPE },
+        { key: ATTR_UUID, value: this.uuid },
         { key: ATTR_TARGET_UUID, value: targetUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -384,8 +384,8 @@ export class SocialClient {
       payload: jsonToPayload({ ...existing, status: 'removed' }),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,        value: SOCIAL_BLOCK_TYPE },
-        { key: ATTR_UUID,        value: existing.byUuid },
+        { key: ATTR_TYPE, value: SOCIAL_BLOCK_TYPE },
+        { key: ATTR_UUID, value: existing.byUuid },
         { key: ATTR_TARGET_UUID, value: existing.blockedUuid },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -425,8 +425,8 @@ export class SocialClient {
     const result = await this.cdn.entity
       .query()
       .where([
-        eq(ATTR_TYPE,        SOCIAL_FOLLOW_TYPE),
-        eq(ATTR_UUID,        followerUuid),
+        eq(ATTR_TYPE, SOCIAL_FOLLOW_TYPE),
+        eq(ATTR_UUID, followerUuid),
         eq(ATTR_TARGET_UUID, followeeUuid),
       ])
       .withPayload(true)
@@ -444,8 +444,8 @@ export class SocialClient {
     const result = await this.cdn.entity
       .query()
       .where([
-        eq(ATTR_TYPE,        SOCIAL_BLOCK_TYPE),
-        eq(ATTR_UUID,        byUuid),
+        eq(ATTR_TYPE, SOCIAL_BLOCK_TYPE),
+        eq(ATTR_UUID, byUuid),
         eq(ATTR_TARGET_UUID, blockedUuid),
       ])
       .withPayload(true)

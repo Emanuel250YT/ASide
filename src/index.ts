@@ -26,13 +26,13 @@
  */
 
 // ─── Core classes ─────────────────────────────────────────────────────────────
-export { BaseClient }          from './base-client.js'
-export { ExtensionClient }     from './extension.js'
-export { AccessTokenManager }  from './access-token.js'
-export { SnowflakeGenerator }  from './snowflake.js'
-export { ProfileWatcher }      from './watcher.js'
-export { SocialClient }        from './social.js'
-export { FeedClient }          from './feed.js'
+export { BaseClient } from './base-client.js'
+export { ExtensionClient } from './extension.js'
+export { AccessTokenManager } from './access-token.js'
+export { SnowflakeGenerator } from './snowflake.js'
+export { ProfileWatcher } from './watcher.js'
+export { SocialClient } from './social.js'
+export { FeedClient } from './feed.js'
 
 // ─── Crypto utilities ─────────────────────────────────────────────────────────
 export {

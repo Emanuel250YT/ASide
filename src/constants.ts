@@ -6,19 +6,19 @@ export const ATTR_NAMESPACE = 'aside.namespace'
 
 /** Attribute keys for social graph entities. */
 export const ATTR_TARGET_UUID = 'aside.social.target'      // followee / blocked / friend
-export const ATTR_TARGET_KEY  = 'aside.social.target_key'  // post/comment entity key
+export const ATTR_TARGET_KEY = 'aside.social.target_key'  // post/comment entity key
 
 /** Entity type discriminators stored in `aside.type`. */
-export const PROFILE_TYPE   = 'profile'
+export const PROFILE_TYPE = 'profile'
 export const EXTENSION_TYPE = 'extension'
 
 /** Social entity type discriminators. */
-export const SOCIAL_FOLLOW_TYPE          = 'aside.social.follow'
-export const SOCIAL_FRIEND_REQUEST_TYPE  = 'aside.social.friend_request'
-export const SOCIAL_POST_TYPE            = 'aside.social.post'
-export const SOCIAL_REACTION_TYPE        = 'aside.social.reaction'
-export const SOCIAL_COMMENT_TYPE         = 'aside.social.comment'
-export const SOCIAL_BLOCK_TYPE           = 'aside.social.block'
+export const SOCIAL_FOLLOW_TYPE = 'aside.social.follow'
+export const SOCIAL_FRIEND_REQUEST_TYPE = 'aside.social.friend_request'
+export const SOCIAL_POST_TYPE = 'aside.social.post'
+export const SOCIAL_REACTION_TYPE = 'aside.social.reaction'
+export const SOCIAL_COMMENT_TYPE = 'aside.social.comment'
+export const SOCIAL_BLOCK_TYPE = 'aside.social.block'
 
 /**
  * Default entity TTL: 365 days in seconds.

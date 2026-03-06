@@ -320,7 +320,7 @@ export class BaseClient {
     const manager = new AccessTokenManager()
     return manager.create({
       ...options,
-      issuerUuid:   this.uuid,
+      issuerUuid: this.uuid,
       issuerWallet: this.wallet,
     })
   }

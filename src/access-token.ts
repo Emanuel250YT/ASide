@@ -156,7 +156,7 @@ export class AccessTokenManager {
     let encKey: string
     let sessionKey: string
     try {
-      ;({ encKey, sessionKey } = await ecdhDeriveKeys(appPrivateKey, token.ephemeralPublicKey))
+      ; ({ encKey, sessionKey } = await ecdhDeriveKeys(appPrivateKey, token.ephemeralPublicKey))
     }
     catch {
       return { valid: false, reason: 'ECDH key derivation failed — invalid key material' }

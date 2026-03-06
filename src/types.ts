@@ -432,10 +432,10 @@ export interface SessionRequest {
 
 // ─── Social graph ─────────────────────────────────────────────────────────────
 
-export type SocialStatus         = 'active' | 'removed'
-export type FriendRequestStatus  = 'pending' | 'accepted' | 'rejected' | 'cancelled'
-export type ReactionType         = 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
-export type PostMediaType        = 'image' | 'video' | 'audio'
+export type SocialStatus = 'active' | 'removed'
+export type FriendRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+export type ReactionType = 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
+export type PostMediaType = 'image' | 'video' | 'audio'
 
 export interface SocialFollow {
   entityKey: string

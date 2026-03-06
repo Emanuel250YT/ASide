@@ -39,7 +39,7 @@ export class FeedClient {
     private readonly cdn: ArkaCDN,
     private readonly uuid: string,
     private readonly wallet: string,
-  ) {}
+  ) { }
 
   // ─── Posts ────────────────────────────────────────────────────────────────
 
@@ -49,22 +49,22 @@ export class FeedClient {
   async createPost(options: CreatePostOptions): Promise<SocialPost> {
     const now = Date.now()
     const post: Omit<SocialPost, 'entityKey'> = {
-      authorUuid:   this.uuid,
+      authorUuid: this.uuid,
       authorWallet: this.wallet,
-      content:      options.content,
-      createdAt:    now,
-      updatedAt:    now,
-      status:       'active',
-      ...(options.media    !== undefined ? { media:    options.media    } : {}),
-      ...(options.tags     !== undefined ? { tags:     options.tags     } : {}),
+      content: options.content,
+      createdAt: now,
+      updatedAt: now,
+      status: 'active',
+      ...(options.media !== undefined ? { media: options.media } : {}),
+      ...(options.tags !== undefined ? { tags: options.tags } : {}),
       ...(options.mentions !== undefined ? { mentions: options.mentions } : {}),
     }
     const { entityKey } = await this.cdn.entity.create({
-      payload:     jsonToPayload(post),
+      payload: jsonToPayload(post),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,   value: SOCIAL_POST_TYPE },
-        { key: ATTR_UUID,   value: this.uuid },
+        { key: ATTR_TYPE, value: SOCIAL_POST_TYPE },
+        { key: ATTR_UUID, value: this.uuid },
         { key: ATTR_WALLET, value: this.wallet },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -99,15 +99,15 @@ export class FeedClient {
     if (post.authorUuid !== this.uuid) throw new Error('ASide: cannot edit another user\'s post')
     const updated: SocialPost = { ...post, content, updatedAt: Date.now() }
     await this.cdn.entity.update({
-      entityKey:   entityKey as Hex,
-      payload:     jsonToPayload(updated),
+      entityKey: entityKey as Hex,
+      payload: jsonToPayload(updated),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,   value: SOCIAL_POST_TYPE },
-        { key: ATTR_UUID,   value: post.authorUuid },
+        { key: ATTR_TYPE, value: SOCIAL_POST_TYPE },
+        { key: ATTR_UUID, value: post.authorUuid },
         { key: ATTR_WALLET, value: post.authorWallet },
       ],
-      expiresIn:   ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
+      expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
     })
     return updated
   }
@@ -121,15 +121,15 @@ export class FeedClient {
     if (!post) return
     if (post.authorUuid !== this.uuid) throw new Error('ASide: cannot delete another user\'s post')
     await this.cdn.entity.update({
-      entityKey:   entityKey as Hex,
-      payload:     jsonToPayload({ ...post, status: 'removed' }),
+      entityKey: entityKey as Hex,
+      payload: jsonToPayload({ ...post, status: 'removed' }),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,   value: SOCIAL_POST_TYPE },
-        { key: ATTR_UUID,   value: post.authorUuid },
+        { key: ATTR_TYPE, value: SOCIAL_POST_TYPE },
+        { key: ATTR_UUID, value: post.authorUuid },
         { key: ATTR_WALLET, value: post.authorWallet },
       ],
-      expiresIn:   ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
+      expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
     })
   }
 
@@ -190,35 +190,35 @@ export class FeedClient {
 
     const now = Date.now()
     const reaction: Omit<SocialReaction, 'entityKey'> = {
-      reactorUuid:     this.uuid,
+      reactorUuid: this.uuid,
       targetEntityKey,
       type,
-      createdAt:       now,
-      status:          'active',
+      createdAt: now,
+      status: 'active',
     }
 
     if (existing) {
       const updated: SocialReaction = { ...existing, status: 'active' }
       await this.cdn.entity.update({
-        entityKey:   existing.entityKey as Hex,
-        payload:     jsonToPayload(updated),
+        entityKey: existing.entityKey as Hex,
+        payload: jsonToPayload(updated),
         contentType: 'application/json',
         attributes: [
-          { key: ATTR_TYPE,       value: SOCIAL_REACTION_TYPE },
-          { key: ATTR_UUID,       value: existing.reactorUuid },
+          { key: ATTR_TYPE, value: SOCIAL_REACTION_TYPE },
+          { key: ATTR_UUID, value: existing.reactorUuid },
           { key: ATTR_TARGET_KEY, value: existing.targetEntityKey },
         ],
-        expiresIn:   ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
+        expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
       })
       return updated
     }
 
     const { entityKey } = await this.cdn.entity.create({
-      payload:     jsonToPayload(reaction),
+      payload: jsonToPayload(reaction),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,       value: SOCIAL_REACTION_TYPE },
-        { key: ATTR_UUID,       value: this.uuid },
+        { key: ATTR_TYPE, value: SOCIAL_REACTION_TYPE },
+        { key: ATTR_UUID, value: this.uuid },
         { key: ATTR_TARGET_KEY, value: targetEntityKey },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -238,15 +238,15 @@ export class FeedClient {
     const existing = await this._findReaction(targetEntityKey, this.uuid, type)
     if (!existing || existing.status === 'removed') return
     await this.cdn.entity.update({
-      entityKey:   existing.entityKey as Hex,
-      payload:     jsonToPayload({ ...existing, status: 'removed' }),
+      entityKey: existing.entityKey as Hex,
+      payload: jsonToPayload({ ...existing, status: 'removed' }),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,       value: SOCIAL_REACTION_TYPE },
-        { key: ATTR_UUID,       value: existing.reactorUuid },
+        { key: ATTR_TYPE, value: SOCIAL_REACTION_TYPE },
+        { key: ATTR_UUID, value: existing.reactorUuid },
         { key: ATTR_TARGET_KEY, value: existing.targetEntityKey },
       ],
-      expiresIn:   ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
+      expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
     })
   }
 
@@ -303,20 +303,20 @@ export class FeedClient {
   async addComment(targetEntityKey: string, content: string): Promise<SocialComment> {
     const now = Date.now()
     const comment: Omit<SocialComment, 'entityKey'> = {
-      authorUuid:      this.uuid,
-      authorWallet:    this.wallet,
+      authorUuid: this.uuid,
+      authorWallet: this.wallet,
       targetEntityKey,
       content,
-      createdAt:       now,
-      updatedAt:       now,
-      status:          'active',
+      createdAt: now,
+      updatedAt: now,
+      status: 'active',
     }
     const { entityKey } = await this.cdn.entity.create({
-      payload:     jsonToPayload(comment),
+      payload: jsonToPayload(comment),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,       value: SOCIAL_COMMENT_TYPE },
-        { key: ATTR_UUID,       value: this.uuid },
+        { key: ATTR_TYPE, value: SOCIAL_COMMENT_TYPE },
+        { key: ATTR_UUID, value: this.uuid },
         { key: ATTR_TARGET_KEY, value: targetEntityKey },
       ],
       expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
@@ -334,15 +334,15 @@ export class FeedClient {
     if (comment.authorUuid !== this.uuid) throw new Error('ASide: cannot edit another user\'s comment')
     const updated: SocialComment = { ...comment, content, updatedAt: Date.now() }
     await this.cdn.entity.update({
-      entityKey:   entityKey as Hex,
-      payload:     jsonToPayload(updated),
+      entityKey: entityKey as Hex,
+      payload: jsonToPayload(updated),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,       value: SOCIAL_COMMENT_TYPE },
-        { key: ATTR_UUID,       value: comment.authorUuid },
+        { key: ATTR_TYPE, value: SOCIAL_COMMENT_TYPE },
+        { key: ATTR_UUID, value: comment.authorUuid },
         { key: ATTR_TARGET_KEY, value: comment.targetEntityKey },
       ],
-      expiresIn:   ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
+      expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
     })
     return updated
   }
@@ -356,15 +356,15 @@ export class FeedClient {
     if (!comment) return
     if (comment.authorUuid !== this.uuid) throw new Error('ASide: cannot delete another user\'s comment')
     await this.cdn.entity.update({
-      entityKey:   entityKey as Hex,
-      payload:     jsonToPayload({ ...comment, status: 'removed' }),
+      entityKey: entityKey as Hex,
+      payload: jsonToPayload({ ...comment, status: 'removed' }),
       contentType: 'application/json',
       attributes: [
-        { key: ATTR_TYPE,       value: SOCIAL_COMMENT_TYPE },
-        { key: ATTR_UUID,       value: comment.authorUuid },
+        { key: ATTR_TYPE, value: SOCIAL_COMMENT_TYPE },
+        { key: ATTR_UUID, value: comment.authorUuid },
         { key: ATTR_TARGET_KEY, value: comment.targetEntityKey },
       ],
-      expiresIn:   ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
+      expiresIn: ExpirationTime.fromDays(DEFAULT_EXPIRY_SECONDS / 86400),
     })
   }
 
@@ -398,8 +398,8 @@ export class FeedClient {
     const result = await this.cdn.entity
       .query()
       .where([
-        eq(ATTR_TYPE,       SOCIAL_REACTION_TYPE),
-        eq(ATTR_UUID,       reactorUuid),
+        eq(ATTR_TYPE, SOCIAL_REACTION_TYPE),
+        eq(ATTR_UUID, reactorUuid),
         eq(ATTR_TARGET_KEY, targetEntityKey),
       ])
       .withPayload(true)
