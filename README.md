@@ -26,37 +26,84 @@ Works in **Node.js ≥ 16** and all modern **browsers** (uses the WebCrypto API,
 
 ## Table of contents
 
-1. [Quick start](#quick-start)
-2. [Running the examples](#running-the-examples)
-3. [User profiles](#user-profiles)
-4. [Social graph — follow, friend, block](#social-graph--follow-friend-block)
-5. [Content feed — posts, reactions, comments](#content-feed--posts-reactions-comments)
-6. [Events](#events)
-   - [Creating & publishing events](#creating--publishing-events)
-   - [Agenda management](#agenda-management)
-   - [Organizers & role-based permissions](#organizers--role-based-permissions)
-   - [Registration / RSVP](#registration--rsvp)
-   - [Guest list](#guest-list)
-   - [Custom registration questions](#custom-registration-questions)
-   - [Ticket types & tickets](#ticket-types--tickets)
-   - [Discount codes](#discount-codes)
-   - [Waitlist](#waitlist)
-   - [Invitations](#invitations)
-   - [Check-in](#check-in)
-   - [Announcements & reminders](#announcements--reminders)
-   - [Analytics](#analytics)
-   - [Calendars & calendar following](#calendars--calendar-following)
-   - [Notifications](#notifications)
-   - [Moderation](#moderation)
-7. [QR codes and deep links](#qr-codes-and-deep-links)
-8. [Access tokens and session security](#access-tokens-and-session-security)
-9. [Cross-app integration](#cross-app-integration)
-10. [Per-app extension data](#per-app-extension-data)
-11. [Multi-chain replication](#multi-chain-replication)
-12. [ProfileWatcher](#profilewatcher)
-13. [SnowflakeGenerator](#snowflakegenerator)
-14. [Crypto utilities](#crypto-utilities)
-15. [API reference](#api-reference)
+- [ASide](#aside)
+  - [Why ASide?](#why-aside)
+  - [Table of contents](#table-of-contents)
+  - [Quick start](#quick-start)
+  - [Running the examples](#running-the-examples)
+    - [Prerequisites](#prerequisites)
+    - [What the examples cover](#what-the-examples-cover)
+  - [User profiles](#user-profiles)
+    - [Subclassing (Discord.js style)](#subclassing-discordjs-style)
+    - [Deferred CDN](#deferred-cdn)
+  - [Social graph — follow, friend, block](#social-graph--follow-friend-block)
+    - [Following](#following)
+    - [Friend requests](#friend-requests)
+    - [Blocking](#blocking)
+  - [Content feed — posts, reactions, comments](#content-feed--posts-reactions-comments)
+    - [Posts](#posts)
+    - [Reactions and likes](#reactions-and-likes)
+    - [Comments](#comments)
+  - [Events](#events)
+    - [Creating \& publishing events](#creating--publishing-events)
+    - [Agenda management](#agenda-management)
+    - [Organizers \& role-based permissions](#organizers--role-based-permissions)
+    - [Registration / RSVP](#registration--rsvp)
+    - [Guest list](#guest-list)
+    - [Custom registration questions](#custom-registration-questions)
+    - [Ticket types \& tickets](#ticket-types--tickets)
+    - [Discount codes](#discount-codes)
+    - [Waitlist](#waitlist)
+    - [Invitations](#invitations)
+    - [Check-in](#check-in)
+    - [Announcements \& reminders](#announcements--reminders)
+    - [Analytics](#analytics)
+    - [Calendars \& calendar following](#calendars--calendar-following)
+    - [Notifications](#notifications)
+    - [Moderation](#moderation)
+  - [QR codes and deep links](#qr-codes-and-deep-links)
+    - [Profile QR](#profile-qr)
+    - [Friend request QR (with expiry)](#friend-request-qr-with-expiry)
+    - [Parsing any aside:// URI](#parsing-any-aside-uri)
+  - [Access tokens and session security](#access-tokens-and-session-security)
+    - [Setup (server side — run once)](#setup-server-side--run-once)
+    - [Issue a token (client side)](#issue-a-token-client-side)
+    - [Validate the token (server side)](#validate-the-token-server-side)
+    - [Signed session requests (replay-attack protection)](#signed-session-requests-replay-attack-protection)
+    - [Phrase commitments (password-style storage)](#phrase-commitments-password-style-storage)
+  - [Cross-app integration](#cross-app-integration)
+    - [Example: App B reads App A's followers](#example-app-b-reads-app-as-followers)
+    - [Example: A game reads a social app's friend list](#example-a-game-reads-a-social-apps-friend-list)
+    - [Example: Cross-app feed aggregation](#example-cross-app-feed-aggregation)
+  - [Per-app extension data](#per-app-extension-data)
+  - [Multi-chain replication](#multi-chain-replication)
+  - [ProfileWatcher](#profilewatcher)
+  - [SnowflakeGenerator](#snowflakegenerator)
+  - [Crypto utilities](#crypto-utilities)
+  - [API reference](#api-reference)
+    - [`BaseClient`](#baseclient)
+    - [`SocialClient`](#socialclient)
+    - [`FeedClient`](#feedclient)
+    - [`EventClient`](#eventclient)
+      - [Events CRUD \& discovery](#events-crud--discovery)
+      - [Agenda](#agenda)
+      - [Organizers \& roles](#organizers--roles)
+      - [Registration / RSVP](#registration--rsvp-1)
+      - [Guest list](#guest-list-1)
+      - [Registration questions](#registration-questions)
+      - [Ticket types \& tickets](#ticket-types--tickets-1)
+      - [Discount codes](#discount-codes-1)
+      - [Waitlist](#waitlist-1)
+      - [Invitations](#invitations-1)
+      - [Check-in](#check-in-1)
+      - [Communication \& analytics](#communication--analytics)
+      - [Calendars](#calendars)
+      - [Notifications \& moderation](#notifications--moderation)
+    - [`AccessTokenManager`](#accesstokenmanager)
+    - [`SnowflakeGenerator`](#snowflakegenerator-1)
+    - [QR utilities](#qr-utilities)
+  - [Release workflow](#release-workflow)
+  - [License](#license)
 
 ---
 
@@ -71,7 +118,7 @@ import {
   chainFromName,
   privateKeyToAccount,
   BaseClient,
-} from "aside";
+} from "@emanuel250dev/aside";
 
 // 1. Pick a chain and create viem transport clients
 const kaolin = chainFromName("kaolin");
@@ -171,7 +218,7 @@ import {
   http,
   chainFromName,
   BaseClient,
-} from "aside";
+} from "@emanuel250dev/aside";
 
 const kaolin = chainFromName("kaolin");
 const cdn = ArkaCDN.create({
@@ -204,7 +251,7 @@ await client.update({
 `BaseClient` is designed to be extended:
 
 ```ts
-import { BaseClient, type BaseClientOptions } from "aside";
+import { BaseClient, type BaseClientOptions } from "@emanuel250dev/aside";
 
 interface MyAppOptions extends BaseClientOptions {
   appId: string;
@@ -826,7 +873,7 @@ Aside provides a URI scheme (`aside://v1/...`) for sharing profiles and sending 
 ### Profile QR
 
 ```ts
-import { encodeProfileLink, decodeProfileLink } from "aside";
+import { encodeProfileLink, decodeProfileLink } from "@emanuel250dev/aside";
 
 // Encode a profile link (pass to any QR library for rendering)
 const uri = encodeProfileLink({
@@ -850,7 +897,7 @@ import {
   decodeFriendRequest,
   isFriendRequestQRValid,
   friendRequestQRExpiresIn,
-} from "aside";
+} from "@emanuel250dev/aside";
 
 // Generate a friend request QR valid for 10 minutes
 const uri = encodeFriendRequest(
@@ -878,7 +925,7 @@ console.log(`Expires in ${Math.round(msLeft / 1000)}s`);
 ### Parsing any aside:// URI
 
 ```ts
-import { parseAsideUri } from "aside";
+import { parseAsideUri } from "@emanuel250dev/aside";
 
 const parsed = parseAsideUri(uri);
 // { type: 'profile' | 'friend-request', data: {...} }
@@ -893,7 +940,7 @@ Aside uses **ECDH P-256** for token issuance. The server never shares a secret w
 ### Setup (server side — run once)
 
 ```ts
-import { generateAppKeyPair } from "aside";
+import { generateAppKeyPair } from "@emanuel250dev/aside";
 
 const appKey = await generateAppKeyPair();
 // Store appKey.privateKey securely on your server.
@@ -918,7 +965,7 @@ const { token, sessionKey } = result;
 ### Validate the token (server side)
 
 ```ts
-import { AccessTokenManager } from "aside";
+import { AccessTokenManager } from "@emanuel250dev/aside";
 
 const manager = new AccessTokenManager();
 
@@ -958,7 +1005,10 @@ if (session.valid) {
 Store a verifiable commitment to a user's phrase without storing the phrase itself:
 
 ```ts
-import { phraseToCommitment, verifyPhraseCommitment } from "aside";
+import {
+  phraseToCommitment,
+  verifyPhraseCommitment,
+} from "@emanuel250dev/aside";
 
 // On registration
 const { hash, salt } = await phraseToCommitment("user-secret-phrase");
@@ -1054,7 +1104,7 @@ import {
   http,
   chainFromName,
   BaseClient,
-} from "aside";
+} from "@emanuel250dev/aside";
 
 const kaolinCdn = ArkaCDN.create({
   publicClient: PublicClient({
@@ -1096,7 +1146,7 @@ import {
   WalletClient,
   http,
   chainFromName,
-} from "aside";
+} from "@emanuel250dev/aside";
 
 const kaolinCdn = ArkaCDN.create({
   publicClient: PublicClient({
@@ -1133,7 +1183,7 @@ watcher.stop();
 128-bit IDs with embedded 52-bit permission bitmasks — useful for encoding user roles and permissions into access tokens.
 
 ```ts
-import { SnowflakeGenerator } from "aside";
+import { SnowflakeGenerator } from "@emanuel250dev/aside";
 
 const gen = new SnowflakeGenerator({ workerId: 1 });
 
@@ -1168,7 +1218,7 @@ import {
   generateAppKeyPair,
   phraseToCommitment,
   verifyPhraseCommitment,
-} from "aside";
+} from "@emanuel250dev/aside";
 
 // AES-256-GCM
 const key = await generateAesKey();
