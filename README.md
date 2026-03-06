@@ -1482,4 +1482,4 @@ Releases are automated via GitHub Actions (`.github/workflows/release.yml`). Add
 
 ## License
 
-ISC
+MIT

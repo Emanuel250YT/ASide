@@ -121,11 +121,11 @@ export class EventClient {
       requiresApproval: options.requiresApproval ?? false,
       registrationOpen: true,
       attendeesVisible: true,
-      capacity: options.capacity,
-      location: options.location,
-      description: options.description,
-      tags: options.tags,
-      categories: options.categories,
+      ...(options.capacity !== undefined && { capacity: options.capacity }),
+      ...(options.location !== undefined && { location: options.location }),
+      ...(options.description !== undefined && { description: options.description }),
+      ...(options.tags !== undefined && { tags: options.tags }),
+      ...(options.categories !== undefined && { categories: options.categories }),
       createdAt: now,
       updatedAt: now,
     }
@@ -244,17 +244,17 @@ export class EventClient {
     const ev = await this._getEventOrThrow(entityKey)
     return this.createEvent({
       title: `${ev.title} (copy)`,
-      description: ev.description,
       startsAt: ev.startsAt,
       endsAt: ev.endsAt,
       timezone: ev.timezone,
       modality: ev.modality,
       visibility: ev.visibility,
-      capacity: ev.capacity,
-      location: ev.location,
-      tags: ev.tags,
-      categories: ev.categories,
       requiresApproval: ev.requiresApproval,
+      ...(ev.description !== undefined && { description: ev.description }),
+      ...(ev.capacity !== undefined && { capacity: ev.capacity }),
+      ...(ev.location !== undefined && { location: ev.location }),
+      ...(ev.tags !== undefined && { tags: ev.tags }),
+      ...(ev.categories !== undefined && { categories: ev.categories }),
       ...overrides,
     })
   }
@@ -271,8 +271,8 @@ export class EventClient {
       .where([eq(ATTR_TYPE, EVENT_TYPE), eq(ATTR_UUID, uuid)])
       .withPayload(true)
       .fetch()
-    let events = result.entities
-      .map(e => ({ entityKey: e.key, ...e.toJson() as Omit<EventData, 'entityKey'> }))
+    let events: EventData[] = result.entities
+      .map(e => ({ entityKey: e.key as string, ...e.toJson() as Omit<EventData, 'entityKey'> }))
     events = this._applyEventFilters(events, options)
     return applyPagination(events, offset, limit)
   }
@@ -287,8 +287,8 @@ export class EventClient {
       .where([eq(ATTR_TYPE, EVENT_TYPE), eq(ATTR_EVENT_STATUS, 'published')])
       .withPayload(true)
       .fetch()
-    let events = result.entities
-      .map(e => ({ entityKey: e.key, ...e.toJson() as Omit<EventData, 'entityKey'> }))
+    let events: EventData[] = result.entities
+      .map(e => ({ entityKey: e.key as string, ...e.toJson() as Omit<EventData, 'entityKey'> }))
       .filter(e => e.visibility === 'public')
     events = this._applyEventFilters(events, options)
     return applyPagination(events, offset, limit)
@@ -654,7 +654,7 @@ export class EventClient {
       registeredAt: now,
       updatedAt: now,
       checkedIn: false,
-      answers,
+      ...(answers !== undefined && { answers }),
     }
     const { entityKey } = await this.cdn.entity.create({
       payload: jsonToPayload(data),
@@ -860,7 +860,7 @@ export class EventClient {
       label: options.label,
       type: options.type,
       required: options.required ?? false,
-      options: options.options,
+      ...(options.options !== undefined && { options: options.options }),
       order: options.order ?? existing.length,
       createdAt: now,
     }
@@ -943,15 +943,15 @@ export class EventClient {
     const data: Omit<TicketType, 'entityKey'> = {
       eventEntityKey,
       name: options.name,
-      description: options.description,
+      ...(options.description !== undefined && { description: options.description }),
       price: options.price,
       currency: options.currency ?? 'USD',
-      capacity: options.capacity,
+      ...(options.capacity !== undefined && { capacity: options.capacity }),
       sold: 0,
       status: 'active',
-      saleEndsAt: options.saleEndsAt,
-      earlyBirdPrice: options.earlyBirdPrice,
-      earlyBirdEndsAt: options.earlyBirdEndsAt,
+      ...(options.saleEndsAt !== undefined && { saleEndsAt: options.saleEndsAt }),
+      ...(options.earlyBirdPrice !== undefined && { earlyBirdPrice: options.earlyBirdPrice }),
+      ...(options.earlyBirdEndsAt !== undefined && { earlyBirdEndsAt: options.earlyBirdEndsAt }),
       createdAt: now,
       updatedAt: now,
     }
@@ -1151,9 +1151,9 @@ export class EventClient {
       code: options.code.toUpperCase(),
       type: options.type,
       value: options.value,
-      maxUses: options.maxUses,
+      ...(options.maxUses !== undefined && { maxUses: options.maxUses }),
       usedCount: 0,
-      expiresAt: options.expiresAt,
+      ...(options.expiresAt !== undefined && { expiresAt: options.expiresAt }),
       status: 'active',
       createdAt: Date.now(),
     }
@@ -1558,7 +1558,7 @@ export class EventClient {
       ownerUuid: this.uuid,
       ownerWallet: this.wallet,
       name: options.name,
-      description: options.description,
+      ...(options.description !== undefined && { description: options.description }),
       visibility: options.visibility ?? 'public',
       createdAt: now,
       updatedAt: now,
@@ -2009,8 +2009,8 @@ export class EventClient {
     const data: Omit<EventInvite, 'entityKey'> = {
       eventEntityKey,
       fromUuid: this.uuid,
-      email: options.email,
-      toUuid: options.toUuid,
+      ...(options.email !== undefined && { email: options.email }),
+      ...(options.toUuid !== undefined && { toUuid: options.toUuid }),
       status: 'pending',
       sentAt: Date.now(),
     }
