@@ -14,8 +14,9 @@ Out of the box you get: decentralized user profiles, a full social graph (follow
 
 Works in **Node.js ≥ 16** and all modern **browsers** (uses the WebCrypto API, no native crypto modules).
 
-Demo Repository for use example: https://github.com/Cloudy-Coding-Official/aside-demo
-Live demo of some features: https://aside.cloudycoding.com
+- Demo Repository for use example: https://github.com/Cloudy-Coding-Official/aside-demo
+
+- Live demo of some features: https://aside.cloudycoding.com
 ---
 
 ## Why ASide?
